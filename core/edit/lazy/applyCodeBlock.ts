@@ -3,6 +3,7 @@ import { generateLines } from "../../diff/util";
 import { supportedLanguages } from "../../util/treeSitter";
 import { getUriFileExtension } from "../../util/uri";
 import { deterministicApplyLazyEdit } from "./deterministic";
+import { fastApplyLazyEdit, isFastApplyModel } from "./fastApply";
 import { streamLazyApply } from "./streamLazyApply";
 import { applyUnifiedDiff, isUnifiedDiffFormat } from "./unifiedDiffApply";
 
@@ -47,6 +48,26 @@ export async function applyCodeBlock(
       };
     } catch (e) {
       console.error("Failed to apply unified diff", e);
+    }
+  }
+
+  // Fine-tuned fast-apply model as the apply role: one rewrite of the whole file.
+  if (isFastApplyModel(llm.model)) {
+    try {
+      const diffLines = await fastApplyLazyEdit(
+        oldFile,
+        newLazyFile,
+        llm,
+        abortController.signal,
+      );
+      if (diffLines !== undefined) {
+        return {
+          isInstantApply: true,
+          diffLinesGenerator: generateLines(diffLines),
+        };
+      }
+    } catch (e) {
+      console.error("Fast apply failed, falling back", e);
     }
   }
 
