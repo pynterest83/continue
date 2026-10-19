@@ -5,6 +5,13 @@
 # - Debug -> Extension
 set -e
 
+# Load nvm if it exists
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+  nvm use
+fi
+
 # Check if node version matches .nvmrc
 if [ -f .nvmrc ]; then
     required_node_version=$(cat .nvmrc)
