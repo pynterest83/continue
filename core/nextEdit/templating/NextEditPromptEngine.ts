@@ -22,6 +22,9 @@ export const NEXT_EDIT_MODEL_TEMPLATES: Record<
   instinct: {
     template: `${INSTINCT_USER_PROMPT_PREFIX}\n\n### Context:\n{{{contextSnippets}}}\n\n### User Edits:\n\n{{{editDiffHistory}}}\n\n### User Excerpt:\n{{{currentFilePath}}}\n\n{{{currentFileContent}}}\`\`\`\n### Response:`,
   },
+  // Sweep-format models build their raw prompt in templating/sweep.ts.
+  "sweep-next-edit": { template: "" },
+  "next-edit-ft": { template: "" },
 };
 
 // Export a utility for providers to use

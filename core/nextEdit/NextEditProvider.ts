@@ -466,39 +466,57 @@ export class NextEditProvider {
       }
     }
 
-    // Send prompts to LLM (using only user prompt for fine-tuned models).
-    // prompts[1] extracts the user prompt from the system-user prompt pair.
-    // NOTE: Stream is currently set to false, but this should ideally be a per-model flag.
-    // Mercury Coder currently does not support streaming.
-    const msg: ChatMessage = await llm.chat(
-      this.endpointType === "fineTuned" ? [prompts[1]] : prompts,
-      token,
-      {
-        stream: false,
-      },
-    );
+    let rawOutput: string;
+    if (this.modelProvider.usesRawCompletion()) {
+      // Base models (e.g. Sweep format): raw prompt, no chat template.
+      rawOutput = await llm.complete(
+        prompts[prompts.length - 1].content,
+        token,
+        {
+          raw: true,
+          stop: this.modelProvider.getStopTokens(),
+          temperature: 0,
+          maxTokens: 1024,
+        },
+      );
+    } else {
+      // Send prompts to LLM (using only user prompt for fine-tuned models).
+      // prompts[1] extracts the user prompt from the system-user prompt pair.
+      // NOTE: Stream is currently set to false, but this should ideally be a per-model flag.
+      // Mercury Coder currently does not support streaming.
+      const msg: ChatMessage = await llm.chat(
+        this.endpointType === "fineTuned" ? [prompts[1]] : prompts,
+        token,
+        {
+          stream: false,
+        },
+      );
 
-    if (typeof msg.content !== "string") {
-      return undefined;
+      if (typeof msg.content !== "string") {
+        return undefined;
+      }
+      rawOutput = msg.content;
     }
 
     // Extract completion using model-specific logic.
-    let nextCompletion = this.modelProvider.extractCompletion(msg.content);
+    let nextCompletion = this.modelProvider.extractCompletion(rawOutput);
 
-    // Postprocess the completion (same as autocomplete).
-    const postprocessed = postprocessCompletion({
-      completion: nextCompletion,
-      llm,
-      prefix: helper.prunedPrefix,
-      suffix: helper.prunedSuffix,
-    });
+    if (this.modelProvider.shouldPostprocess()) {
+      // Postprocess the completion (same as autocomplete).
+      const postprocessed = postprocessCompletion({
+        completion: nextCompletion,
+        llm,
+        prefix: helper.prunedPrefix,
+        suffix: helper.prunedSuffix,
+      });
 
-    // Return early if postprocessing filtered out the completion.
-    if (!postprocessed) {
-      return undefined;
+      // Return early if postprocessing filtered out the completion.
+      if (!postprocessed) {
+        return undefined;
+      }
+
+      nextCompletion = postprocessed;
     }
-
-    nextCompletion = postprocessed;
 
     let outcome: NextEditOutcome | undefined;
 

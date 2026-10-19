@@ -23,6 +23,9 @@ export enum LLMConfigurationStatuses {
 export enum NEXT_EDIT_MODELS {
   MERCURY_CODER = "mercury-coder",
   INSTINCT = "instinct",
+  SWEEP = "sweep-next-edit",
+  // Custom next-edit models fine-tuned on the Sweep prompt format.
+  FINETUNED = "next-edit-ft",
 }
 
 export {

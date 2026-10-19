@@ -464,6 +464,23 @@ export abstract class BaseNextEditModelProvider {
     return false;
   }
 
+  /**
+   * True for base models served behind a raw completions endpoint: the last
+   * prompt's content is sent as-is with getStopTokens(), instead of chat.
+   */
+  usesRawCompletion(): boolean {
+    return false;
+  }
+
+  getStopTokens(): string[] {
+    return [];
+  }
+
+  /** Whether autocomplete postprocessing applies to this model's output. */
+  shouldPostprocess(): boolean {
+    return true;
+  }
+
   getUniqueToken(): string | null {
     return null;
   }
