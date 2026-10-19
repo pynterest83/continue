@@ -89,6 +89,7 @@ const emptySnippetPayload: SnippetPayload = {
   clipboardSnippets: [],
   recentlyOpenedFileSnippets: [],
   staticSnippet: [],
+  signatureHelpSnippets: [],
 };
 
 function makeHelper(overrides: any = {}) {

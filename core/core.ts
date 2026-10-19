@@ -2,7 +2,6 @@ import { fetchwithRequestOptions } from "@continuedev/fetch";
 import * as URI from "uri-js";
 import { v4 as uuidv4 } from "uuid";
 
-import { CompletionProvider } from "./autocomplete/CompletionProvider";
 import {
   openedFilesLruCache,
   prevFilepaths,
@@ -49,6 +48,9 @@ import {
 
 import { ConfigYaml } from "@continuedev/config-yaml";
 import { getDiffFn, GitDiffCache } from "./autocomplete/snippets/gitDiffCache";
+import { InlineCompletionProvider } from "./autocompletion-v2/InlineCompletionProvider";
+import { LRUCache } from "./autocompletion-v2/LruCache";
+import { TextDocument } from "./autocompletion-v2/types";
 import { stringifyMcpPrompt } from "./commands/slash/mcpSlashCommand";
 import { createNewAssistantFile } from "./config/createNewAssistantFile";
 import {
@@ -89,7 +91,7 @@ import { Logger } from "./util/Logger.js";
 export class Core {
   configHandler: ConfigHandler;
   codeBaseIndexer: CodebaseIndexer;
-  completionProvider: CompletionProvider;
+  completionProvider: InlineCompletionProvider;
   nextEditProvider: NextEditProvider;
   private docsService: DocsService;
   private globalContext = new GlobalContext();
@@ -236,11 +238,11 @@ export class Core {
         }
         return config.selectedModelByRole.autocomplete ?? undefined;
       };
-      this.completionProvider = new CompletionProvider(
-        this.configHandler,
+      const lruResultCache = new LRUCache(1000);
+      this.completionProvider = new InlineCompletionProvider(
+        lruResultCache,
         ide,
-        getLlm,
-        (e) => {},
+        this.configHandler,
         (..._) => Promise.resolve([]),
       );
 
@@ -643,12 +645,22 @@ export class Core {
 
     // Autocomplete
     on("autocomplete/complete", async (msg) => {
+      const fileContent = await this.ide.readFile(msg.data.filepath);
+      // The language is derived from the filepath by HelperVars; the
+      // document only backs prefetch.
+      const document = new TextDocument(fileContent, "");
       const outcome =
-        await this.completionProvider.provideInlineCompletionItems(
-          msg.data,
-          undefined,
-        );
-      return outcome ? [outcome.completion] : [];
+        await this.completionProvider.provideInlineCompletionItems({
+          document,
+          manuallyPassFileContents: fileContent,
+          pos: msg.data.pos,
+          completionId: msg.data.completionId,
+          filepath: msg.data.filepath,
+          recentlyEditedRanges: msg.data.recentlyEditedRanges,
+          recentlyVisitedRanges: msg.data.recentlyVisitedRanges,
+          isUntitledFile: msg.data.isUntitledFile,
+        });
+      return outcome?.completion ? [outcome.completion] : [];
     });
     on("autocomplete/accept", async (msg) => {
       this.completionProvider.accept(msg.data.completionId);

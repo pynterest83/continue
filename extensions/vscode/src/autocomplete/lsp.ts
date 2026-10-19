@@ -15,7 +15,9 @@ import * as vscode from "vscode";
 
 import type {
   DocumentSymbol,
+  HoverSymbol,
   IDE,
+  Position,
   Range,
   RangeInFile,
   RangeInFileWithContents,
@@ -47,14 +49,15 @@ interface SignatureHelpInput {
   line: number;
   character: number;
   name: SignatureHelpProviderName;
+  triggerCharacter?: string;
 }
 function signatureHelpKey(input: SignatureHelpInput) {
-  return `${input.name}${input.uri.toString()}${input.line}${input.character}`;
+  return `${input.name}${input.uri.toString()}${input.line}${input.character}${input.triggerCharacter}`;
 }
 
 const MAX_CACHE_SIZE = 500;
 const gotoCache = new Map<string, RangeInFile[]>();
-const signatureHelpCache = new Map<string, vscode.SignatureHelp>();
+const signatureHelpCache = new Map<string, SignatureHelp>();
 
 export async function executeGotoProvider(
   input: GotoInput,
@@ -417,6 +420,7 @@ export async function executeSignatureHelpProvider(
       input.name,
       input.uri,
       new vscode.Position(input.line, input.character),
+      input.triggerCharacter,
     )) as SignatureHelp;
 
     // Add to cache
@@ -521,4 +525,21 @@ export async function executeSymbolProvider(
     console.warn(`Error executing ${input.name}:`, e);
     return [];
   }
+}
+
+interface HoverInput {
+  name: string;
+  uri: vscode.Uri;
+  position: Position;
+}
+
+export async function executeHoverProvider(
+  input: HoverInput,
+): Promise<HoverSymbol[]> {
+  const result = await vscode.commands.executeCommand<HoverSymbol[]>(
+    input.name,
+    input.uri,
+    input.position,
+  );
+  return result;
 }

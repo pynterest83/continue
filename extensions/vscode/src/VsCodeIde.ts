@@ -9,6 +9,7 @@ import * as vscode from "vscode";
 
 import {
   executeGotoProvider,
+  executeHoverProvider,
   executeSignatureHelpProvider,
   executeSymbolProvider,
 } from "./autocomplete/lsp";
@@ -23,6 +24,7 @@ import type {
   DocumentSymbol,
   FileStatsMap,
   FileType,
+  HoverSymbol,
   IDE,
   IdeInfo,
   IdeSettings,
@@ -110,6 +112,7 @@ class VsCodeIde implements IDE {
       line: location.position.line,
       character: location.position.character,
       name: "vscode.executeSignatureHelpProvider",
+      triggerCharacter: "(", // most of languages use this character to begin of function parameters
     });
 
     return result;
@@ -132,6 +135,16 @@ class VsCodeIde implements IDE {
     const result = await executeSymbolProvider({
       uri: vscode.Uri.parse(textDocumentIdentifier),
       name: "vscode.executeDocumentSymbolProvider",
+    });
+
+    return result;
+  }
+
+  async getHoverSymbols(location: Location): Promise<HoverSymbol[]> {
+    const result = await executeHoverProvider({
+      name: "vscode.executeHoverProvider",
+      uri: vscode.Uri.parse(location.filepath),
+      position: location.position,
     });
 
     return result;

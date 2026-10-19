@@ -147,10 +147,21 @@
           "type": "number",
           "default": 60,
           "description": "The period of time in minutes between automatic syncs."
+        },
+        "continue.intranetUpdateServerUrl": {
+          "type": "string",
+          "default": null,
+          "markdownDescription": "URL of your intranet update server (e.g., https://intranet.example.com/api/extension/version). When set, the extension will check this server for updates instead of the marketplace."
         }
       }
     },
     "commands": [
+      {
+        "command": "continue.checkForIntranetUpdate",
+        "category": "Continue",
+        "title": "Check for Intranet Update",
+        "icon": "$(sync)"
+      },
       {
         "command": "continue.applyCodeFromChat",
         "category": "Continue",
@@ -374,6 +385,18 @@
         "command": "continue.openInNewWindow",
         "category": "Continue",
         "title": "Open in new window",
+        "group": "Continue"
+      },
+      {
+        "command": "continue.benchmarkContinueAutocomplete",
+        "category": "Continue",
+        "title": "Benchmark Continue Autocomplete provider",
+        "group": "Continue"
+      },
+      {
+        "command": "continue.benchmarkAutocompleteV2",
+        "category": "Continue",
+        "title": "Benchmark Autocomplete v2 provider",
         "group": "Continue"
       }
     ],

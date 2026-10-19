@@ -5,6 +5,7 @@ import {
   DocumentSymbol,
   FileStatsMap,
   FileType,
+  HoverSymbol,
   IDE,
   IdeInfo,
   IdeSettings,
@@ -51,6 +52,10 @@ class FileSystemIde implements IDE {
 
   getSignatureHelp(location: Location): Promise<SignatureHelp | null> {
     return Promise.resolve(null);
+  }
+
+  getHoverSymbols(location: Location): Promise<HoverSymbol[]> {
+    return Promise.resolve([]);
   }
 
   getReferences(location: Location): Promise<RangeInFile[]> {

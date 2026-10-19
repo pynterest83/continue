@@ -2,7 +2,7 @@
 import * as fs from "node:fs";
 
 import { ContextMenuConfig, ILLM, ModelInstaller } from "core";
-import { CompletionProvider } from "core/autocomplete/CompletionProvider";
+import { InlineCompletionProvider } from "core/autocompletion-v2/InlineCompletionProvider";
 import { ConfigHandler } from "core/config/ConfigHandler";
 import { EXTENSION_NAME } from "core/util/constants";
 import { Core } from "core/core";
@@ -21,6 +21,8 @@ import * as YAML from "yaml";
 
 import { convertJsonToYamlConfig } from "../../../packages/config-yaml/dist";
 
+import { AutocompleteV2Provider } from "./autocomplete-v2/completionProvider";
+import { ContinueCompletionProvider } from "./autocomplete/completionProvider";
 import {
   getAutocompleteStatusBarDescription,
   getAutocompleteStatusBarTitle,
@@ -473,7 +475,7 @@ const getCommandsMap: (
     },
     "continue.logAutocompleteOutcome": (
       completionId: string,
-      completionProvider: CompletionProvider,
+      completionProvider: InlineCompletionProvider,
     ) => {
       completionProvider.accept(completionId);
     },
@@ -824,6 +826,46 @@ const getCommandsMap: (
         "editor.action.inlineSuggest.trigger",
       );
     },
+    "continue.benchmarkContinueAutocomplete": async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        await vscode.window.showErrorMessage(
+          "You must open a file to benchmark",
+        );
+        return;
+      }
+
+      const provider = new ContinueCompletionProvider(
+        configHandler,
+        ide,
+        sidebar.webviewProtocol,
+        true,
+      );
+      const elaps = await benchmarkAutocompleteProvider(provider, editor, 100);
+      await vscode.window.showInformationMessage(
+        `[Continue Autocomplete benchmark] Run 100 iters in ${elaps}ms`,
+      );
+    },
+    "continue.benchmarkAutocompleteV2": async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        await vscode.window.showErrorMessage(
+          "You must open a file to benchmark",
+        );
+        return;
+      }
+      const provider = new AutocompleteV2Provider(
+        configHandler,
+        ide,
+        sidebar.webviewProtocol,
+        true,
+      );
+      //@ts-ignore
+      const elaps = await benchmarkAutocompleteProvider(provider, editor, 100);
+      await vscode.window.showInformationMessage(
+        `[Autocomplete v2 benchmark] Run 100 iters in ${elaps}ms`,
+      );
+    },
   };
 };
 
@@ -897,4 +939,47 @@ export function registerAllCommands(
       vscode.commands.registerCommand(command, callback),
     );
   }
+}
+
+function getRandomPosition(
+  document: vscode.TextDocument,
+  fixPosition?: vscode.Position,
+): vscode.Position {
+  const fixProb = Math.random();
+  if (fixPosition && fixProb > 0.5) {
+    return fixPosition;
+  }
+
+  const line = Math.floor(Math.random() * document.lineCount);
+  const character = Math.floor(
+    Math.random() * document.lineAt(line).text.length,
+  );
+  return new vscode.Position(line, character);
+}
+
+async function benchmarkAutocompleteProvider(
+  provider: vscode.InlineCompletionItemProvider,
+  editor: vscode.TextEditor,
+  nIters: number,
+): Promise<number> {
+  const document = editor.document;
+  const context: vscode.InlineCompletionContext = {
+    triggerKind: vscode.InlineCompletionTriggerKind.Invoke,
+    selectedCompletionInfo: undefined,
+  };
+  const token: vscode.CancellationToken = {
+    onCancellationRequested: () => new vscode.Disposable(() => {}),
+    isCancellationRequested: false,
+  };
+  const start = Date.now();
+  for (let i = 0; i < nIters; ++i) {
+    await provider.provideInlineCompletionItems(
+      document,
+      getRandomPosition(document, editor.selection.active),
+      context,
+      token,
+    );
+  }
+  const elaps = Date.now() - start;
+  return elaps;
 }

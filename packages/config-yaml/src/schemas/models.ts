@@ -60,6 +60,7 @@ export const completionOptionsSchema = z.object({
   promptCaching: z.boolean().optional(),
   stream: z.boolean().optional(),
   keepAlive: z.number().optional(),
+  reasoningEffort: z.enum(["low", "medium", "high"]).optional(),
 });
 export type CompletionOptions = z.infer<typeof completionOptionsSchema>;
 
@@ -164,6 +165,8 @@ export const autocompleteOptionsSchema = z.object({
   experimental_includeRecentlyEditedRanges: z.boolean().optional(),
   experimental_includeDiff: z.boolean().optional(),
   experimental_enableStaticContextualization: z.boolean().optional(),
+  experimental_enableSignatureHelp: z.boolean().optional(),
+  experimental_prefetch: z.boolean().optional(),
 });
 
 /** Prompt templates use Handlebars syntax */

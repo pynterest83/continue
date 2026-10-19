@@ -96,4 +96,45 @@ export class ContextRetrievalService {
       );
     }
   }
+
+  public async getSignatureHelpSnippets(
+    helper: HelperVars,
+    ide: IDE,
+  ): Promise<AutocompleteStaticSnippet[]> {
+    const results: AutocompleteStaticSnippet[] = [];
+
+    const signatureHelp = await ide.getSignatureHelp({
+      filepath: helper.filepath,
+      position: helper.pos,
+    });
+
+    if (signatureHelp) {
+      const { signatures } = signatureHelp;
+      for (const signature of signatures) {
+        const { label, documentation } = signature;
+
+        const docString = documentation
+          ? typeof documentation === "string"
+            ? documentation
+            : documentation.value
+          : "";
+
+        const content = `
+        Function Signature
+        ${docString.slice(0, 20)}...
+        ${label}
+        `.trim();
+
+        results.push({
+          filepath: helper.filepath, // just a fake filepath
+          type: AutocompleteSnippetType.Static,
+          content,
+        });
+      }
+    }
+
+    console.log({ signatureHelp });
+
+    return results;
+  }
 }

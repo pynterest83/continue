@@ -1215,6 +1215,7 @@ export interface BaseCompletionOptions {
   reasoning?: boolean;
   reasoningBudgetTokens?: number;
   promptCaching?: boolean;
+  reasoningEffort?: "low" | "medium" | "high";
 }
 
 export interface ModelCapability {
@@ -1313,6 +1314,8 @@ export interface TabAutocompleteOptions {
   experimental_includeRecentlyEditedRanges: boolean | number;
   experimental_includeDiff: boolean | number;
   experimental_enableStaticContextualization: boolean;
+  experimental_enableSignatureHelp: boolean;
+  experimental_prefetch?: boolean | number;
 }
 
 export interface StdioOptions {
@@ -1608,6 +1611,12 @@ export class SignatureInformation {
    * If provided, this is used in place of {@linkcode SignatureHelp.activeParameter}.
    */
   activeParameter?: number;
+
+  documentation?:
+    | string
+    | {
+        value: string;
+      };
 }
 
 /**
@@ -2019,4 +2028,9 @@ export interface DocumentSymbol {
   range: Range;
   selectionRange: Range;
   children?: DocumentSymbol[];
+}
+
+export interface HoverSymbol {
+  contents: Array<string | { language: string; value: string }>;
+  range: Location;
 }

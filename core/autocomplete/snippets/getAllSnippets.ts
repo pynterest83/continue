@@ -26,6 +26,7 @@ export interface SnippetPayload {
   clipboardSnippets: AutocompleteClipboardSnippet[];
   recentlyOpenedFileSnippets: AutocompleteCodeSnippet[];
   staticSnippet: AutocompleteStaticSnippet[];
+  signatureHelpSnippets: AutocompleteStaticSnippet[];
 }
 
 function racePromise<T>(promise: Promise<T[]>, timeout = 100): Promise<T[]> {
@@ -188,6 +189,7 @@ export const getAllSnippets = async ({
     clipboardSnippets,
     recentlyOpenedFileSnippets,
     staticSnippet,
+    signatureHelpSnippets,
   ] = await Promise.all([
     racePromise(contextRetrievalService.getRootPathSnippets(helper)),
     racePromise(
@@ -202,6 +204,11 @@ export const getAllSnippets = async ({
     helper.options.experimental_enableStaticContextualization
       ? racePromise(contextRetrievalService.getStaticContextSnippets(helper))
       : [],
+    helper.options.experimental_enableSignatureHelp
+      ? racePromise(
+          contextRetrievalService.getSignatureHelpSnippets(helper, ide),
+        )
+      : [],
   ]);
 
   return {
@@ -214,6 +221,7 @@ export const getAllSnippets = async ({
     recentlyVisitedRangesSnippets: helper.input.recentlyVisitedRanges,
     recentlyOpenedFileSnippets,
     staticSnippet,
+    signatureHelpSnippets,
   };
 };
 
@@ -239,6 +247,7 @@ export const getAllSnippetsWithoutRace = async ({
     clipboardSnippets,
     recentlyOpenedFileSnippets,
     staticSnippet,
+    signatureHelpSnippets,
   ] = await Promise.all([
     contextRetrievalService.getRootPathSnippets(helper),
     contextRetrievalService.getSnippetsFromImportDefinitions(helper),
@@ -250,6 +259,9 @@ export const getAllSnippetsWithoutRace = async ({
     getSnippetsFromRecentlyOpenedFiles(helper, ide),
     helper.options.experimental_enableStaticContextualization
       ? contextRetrievalService.getStaticContextSnippets(helper)
+      : [],
+    helper.options.experimental_enableSignatureHelp
+      ? contextRetrievalService.getSignatureHelpSnippets(helper, ide)
       : [],
   ]);
 
@@ -263,5 +275,6 @@ export const getAllSnippetsWithoutRace = async ({
     recentlyVisitedRangesSnippets: helper.input.recentlyVisitedRanges,
     recentlyOpenedFileSnippets,
     staticSnippet,
+    signatureHelpSnippets,
   };
 };
