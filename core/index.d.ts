@@ -899,7 +899,10 @@ export interface IDE {
 
   subprocess(command: string, cwd?: string): Promise<[string, string]>;
 
-  getProblems(fileUri?: string | undefined): Promise<Problem[]>;
+  getProblems(
+    fileUri?: string | undefined,
+    errorsOnly?: boolean,
+  ): Promise<Problem[]>;
 
   getBranch(dir: string): Promise<string>;
 

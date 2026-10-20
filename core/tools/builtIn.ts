@@ -17,6 +17,8 @@ export enum BuiltInToolNames {
   FetchUrlContent = "fetch_url_content",
   CodebaseTool = "codebase",
   ReadSkill = "read_skill",
+  GetFileDiagnostics = "get_file_diagnostics",
+  CallMcpToolWithFile = "call_mcp_tool_with_file",
 
   // excluded from allTools for now
   ViewRepoMap = "view_repo_map",

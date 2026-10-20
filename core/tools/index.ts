@@ -13,6 +13,8 @@ export const getBaseToolDefinitions = () => [
   toolDefinitions.lsTool,
   toolDefinitions.createRuleBlock,
   toolDefinitions.fetchUrlContentTool,
+  toolDefinitions.getFileDiagnosticsTool,
+  toolDefinitions.callMcpToolWithFileTool,
 ];
 
 export const getConfigDependentToolDefinitions = async (

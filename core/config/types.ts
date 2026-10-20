@@ -729,7 +729,7 @@ declare global {
   
     subprocess(command: string, cwd?: string): Promise<[string, string]>;
   
-    getProblems(filepath?: string | undefined): Promise<Problem[]>;
+    getProblems(filepath?: string | undefined, errorsOnly?: boolean): Promise<Problem[]>;
   
     getBranch(dir: string): Promise<string>;
   

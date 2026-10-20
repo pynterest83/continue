@@ -20,6 +20,7 @@ import { logger } from "../util/logger.js";
 import { ALL_BUILT_IN_TOOLS } from "./allBuiltIns.js";
 import { askQuestionTool } from "./askQuestion.js";
 import { checkBackgroundJobTool } from "./checkBackgroundJob.js";
+import { callMcpToolWithFileTool } from "./callMcpToolWithFile.js";
 import { editTool } from "./edit.js";
 import { exitTool } from "./exit.js";
 import { fetchTool } from "./fetch.js";
@@ -71,6 +72,7 @@ const BASE_BUILTIN_TOOLS: Tool[] = [
   writeChecklistTool,
   checkBackgroundJobTool,
   askQuestionTool,
+  callMcpToolWithFileTool,
 ];
 
 const BUILTIN_SEARCH_TOOLS: Tool[] = [searchCodeTool];

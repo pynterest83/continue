@@ -641,14 +641,22 @@ class VsCodeIde implements IDE {
     }
   }
 
-  async getProblems(fileUri?: string | undefined): Promise<Problem[]> {
+  async getProblems(
+    fileUri?: string | undefined,
+    errorsOnly?: boolean,
+  ): Promise<Problem[]> {
     const uri = fileUri
       ? vscode.Uri.parse(fileUri)
       : vscode.window.activeTextEditor?.document.uri;
     if (!uri) {
       return [];
     }
-    return vscode.languages.getDiagnostics(uri).map((d) => {
+    const diagnostics = errorsOnly
+      ? vscode.languages
+          .getDiagnostics(uri)
+          .filter((d) => d.severity === vscode.DiagnosticSeverity.Error)
+      : vscode.languages.getDiagnostics(uri);
+    return diagnostics.map((d) => {
       return {
         filepath: uri.toString(),
         range: {

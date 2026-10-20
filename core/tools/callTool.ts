@@ -5,11 +5,13 @@ import { ContinueError, ContinueErrorReason } from "../util/errors";
 import { canParseUrl } from "../util/url";
 import { BuiltInToolNames } from "./builtIn";
 
+import { callMcpToolWithFileImpl } from "./implementations/callMcpToolWithFile";
 import { codebaseToolImpl } from "./implementations/codebaseTool";
 import { createNewFileImpl } from "./implementations/createNewFile";
 import { createRuleBlockImpl } from "./implementations/createRuleBlock";
 import { fetchUrlContentImpl } from "./implementations/fetchUrlContent";
 import { fileGlobSearchImpl } from "./implementations/globSearch";
+import { getFileDiagnosticsImpl } from "./implementations/getFileDiagnostics";
 import { grepSearchImpl } from "./implementations/grepSearch";
 import { lsToolImpl } from "./implementations/lsTool";
 import { readCurrentlyOpenFileImpl } from "./implementations/readCurrentlyOpenFile";
@@ -224,6 +226,10 @@ export async function callBuiltInTool(
       return await viewRepoMapImpl(args, extras);
     case BuiltInToolNames.ViewSubdirectory:
       return await viewSubdirectoryImpl(args, extras);
+    case BuiltInToolNames.GetFileDiagnostics:
+      return await getFileDiagnosticsImpl(args, extras);
+    case BuiltInToolNames.CallMcpToolWithFile:
+      return await callMcpToolWithFileImpl(args, extras);
     default:
       throw new Error(`Tool "${functionName}" not found`);
   }

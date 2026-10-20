@@ -1,8 +1,10 @@
+export { callMcpToolWithFileTool } from "./callMcpToolWithFile";
 export { codebaseTool } from "./codebaseTool";
 export { createNewFileTool } from "./createNewFile";
 export { createRuleBlock } from "./createRuleBlock";
 export { editFileTool } from "./editFile";
 export { fetchUrlContentTool } from "./fetchUrlContent";
+export { getFileDiagnosticsTool } from "./getFileDiagnostics";
 export { globSearchTool } from "./globSearch";
 export { grepSearchTool } from "./grepSearch";
 export { lsTool } from "./ls";

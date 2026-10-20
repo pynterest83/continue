@@ -34,7 +34,7 @@ export type ToIdeFromWebviewOrCoreProtocol = {
   saveFile: [{ filepath: string }, void];
   fileExists: [{ filepath: string }, boolean];
   readFile: [{ filepath: string }, string];
-  getProblems: [{ filepath: string }, Problem[]];
+  getProblems: [{ filepath: string; errorsOnly?: boolean }, Problem[]];
   getOpenFiles: [undefined, string[]];
   getCurrentFile: [
     undefined,

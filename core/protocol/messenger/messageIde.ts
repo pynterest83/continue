@@ -216,8 +216,8 @@ export class MessageIde implements IDE {
     return this.request("getFileResults", { pattern });
   }
 
-  getProblems(fileUri: string): Promise<Problem[]> {
-    return this.request("getProblems", { filepath: fileUri });
+  getProblems(fileUri: string, errorsOnly?: boolean): Promise<Problem[]> {
+    return this.request("getProblems", { filepath: fileUri, errorsOnly });
   }
 
   subprocess(command: string, cwd?: string): Promise<[string, string]> {

@@ -158,7 +158,7 @@ export class ReverseMessageIde {
     });
 
     this.on("getProblems", (data) => {
-      return this.ide.getProblems(data.filepath);
+      return this.ide.getProblems(data.filepath, data.errorsOnly);
     });
 
     this.on("subprocess", (data) => {

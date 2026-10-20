@@ -339,7 +339,7 @@ export class VsCodeMessenger {
       return ide.subprocess(msg.data.command, msg.data.cwd);
     });
     this.onWebviewOrCore("getProblems", async (msg) => {
-      return ide.getProblems(msg.data.filepath);
+      return ide.getProblems(msg.data.filepath, msg.data.errorsOnly);
     });
     this.onWebviewOrCore("getBranch", async (msg) => {
       const { dir } = msg.data;
