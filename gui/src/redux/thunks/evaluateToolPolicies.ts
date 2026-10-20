@@ -3,13 +3,19 @@ import { Tool, ToolCallState } from "core";
 import { IIdeMessenger } from "../../context/IdeMessenger";
 import { isEditTool } from "../../util/toolCallState";
 import { errorToolCall, updateToolCallOutput } from "../slices/sessionSlice";
-import { DEFAULT_TOOL_SETTING, ToolPolicies } from "../slices/uiSlice";
+import {
+  DEFAULT_TOOL_SETTING,
+  ToolBypassHighRisk,
+  ToolPolicies,
+} from "../slices/uiSlice";
 import { AppThunkDispatch } from "../store";
 
-interface EvaluatedPolicy {
+export interface EvaluatedPolicy {
   policy: ToolPolicy;
   displayValue?: string;
   toolCallState: ToolCallState;
+  /** True if the command was evaluated as high risk but user set Automatic */
+  isHighRiskOverride?: boolean;
 }
 
 /**
@@ -21,20 +27,21 @@ async function evaluateToolPolicy(
   activeTools: Tool[],
   toolCallState: ToolCallState,
   toolPolicies: ToolPolicies,
+  toolBypassHighRisk: ToolBypassHighRisk,
 ): Promise<EvaluatedPolicy> {
   // allow edit tool calls without permission
   if (isEditTool(toolCallState.toolCall.function.name)) {
     return { policy: "allowedWithoutPermission", toolCallState };
   }
 
+  const toolName = toolCallState.toolCall.function.name;
+
   const basePolicy =
-    toolPolicies[toolCallState.toolCall.function.name] ??
-    activeTools.find(
-      (tool) => tool.function.name === toolCallState.toolCall.function.name,
-    )?.defaultToolPolicy ??
+    toolPolicies[toolName] ??
+    activeTools.find((tool) => tool.function.name === toolName)
+      ?.defaultToolPolicy ??
     DEFAULT_TOOL_SETTING;
 
-  const toolName = toolCallState.toolCall.function.name;
   const result = await ideMessenger.request("tools/evaluatePolicy", {
     toolName,
     basePolicy,
@@ -63,7 +70,30 @@ async function evaluateToolPolicy(
     return { policy: "allowedWithPermission", displayValue, toolCallState }; // Cannot make more lenient
   }
 
-  return { policy: dynamicPolicy, displayValue, toolCallState };
+  // Check if this is a high risk override scenario:
+  // User set "Automatic" (basePolicy = allowedWithoutPermission) but security check says high risk (dynamicPolicy = allowedWithPermission)
+  // Only applicable to run_terminal_command
+  const isHighRiskOverride =
+    toolName === "run_terminal_command" &&
+    basePolicy === "allowedWithoutPermission" &&
+    dynamicPolicy === "allowedWithPermission";
+
+  // If user has enabled bypass for high risk commands, auto-approve instead of asking
+  if (isHighRiskOverride && toolBypassHighRisk?.[toolName]) {
+    return {
+      policy: "allowedWithoutPermission",
+      displayValue,
+      toolCallState,
+      isHighRiskOverride: false, // Already bypassed, no need to show button
+    };
+  }
+
+  return {
+    policy: dynamicPolicy,
+    displayValue,
+    toolCallState,
+    isHighRiskOverride,
+  };
 }
 
 /*
@@ -77,6 +107,7 @@ export async function evaluateToolPolicies(
   activeTools: Tool[],
   generatedToolCalls: ToolCallState[],
   toolPolicies: ToolPolicies,
+  toolBypassHighRisk: ToolBypassHighRisk,
 ): Promise<EvaluatedPolicy[]> {
   // Check if ALL tool calls are auto-approved using dynamic evaluation
   const policyResults = await Promise.all(
@@ -86,6 +117,7 @@ export async function evaluateToolPolicies(
         activeTools,
         toolCallState,
         toolPolicies,
+        toolBypassHighRisk,
       ),
     ),
   );

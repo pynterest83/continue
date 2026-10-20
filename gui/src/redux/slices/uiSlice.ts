@@ -16,6 +16,7 @@ export type ToolPolicies = { [toolName: string]: ToolPolicy };
 export type RulePolicies = { [ruleName: string]: RulePolicy };
 export type ToolGroupPolicies = { [toolGroupName: string]: ToolGroupPolicy };
 export type ReasoningSettings = { [modelTitle: string]: boolean };
+export type ToolBypassHighRisk = { [toolName: string]: boolean };
 
 type UIState = {
   showDialog: boolean;
@@ -26,6 +27,7 @@ type UIState = {
   shouldAddFileForEditing: boolean;
   toolSettings: ToolPolicies;
   toolGroupSettings: ToolGroupPolicies;
+  toolBypassHighRisk: ToolBypassHighRisk;
   ruleSettings: RulePolicies;
   reasoningSettings: ReasoningSettings;
   ttsActive: boolean;
@@ -47,6 +49,7 @@ export const DEFAULT_UI_SLICE: UIState = {
   toolGroupSettings: {
     [BUILT_IN_GROUP_NAME]: "include",
   },
+  toolBypassHighRisk: {},
   ruleSettings: {},
   reasoningSettings: {},
 };
@@ -120,6 +123,16 @@ export const uiSlice = createSlice({
         state.toolGroupSettings[action.payload] = "include";
       }
     },
+    // Tool Bypass High Risk
+    setToolBypassHighRisk: (
+      state,
+      action: PayloadAction<{
+        toolName: string;
+        bypass: boolean;
+      }>,
+    ) => {
+      state.toolBypassHighRisk[action.payload.toolName] = action.payload.bypass;
+    },
     // Rules
     addRule: (state, action: PayloadAction<RuleWithSource>) => {
       state.ruleSettings[action.payload.name!] = DEFAULT_RULE_SETTING;
@@ -161,6 +174,7 @@ export const {
   setToolPolicy,
   clearToolPolicy,
   toggleToolGroupSetting,
+  setToolBypassHighRisk,
   addTool,
   addRule,
   toggleRuleSetting,

@@ -55,6 +55,7 @@ const saveSubsetFilters = [
   createFilter("ui", [
     "toolSettings",
     "toolGroupSettings",
+    "toolBypassHighRisk",
     "ruleSettings",
     "reasoningSettings",
   ]),
