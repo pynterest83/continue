@@ -1,4 +1,5 @@
 import {
+  AdjustmentsHorizontalIcon,
   ArrowLeftIcon,
   CircleStackIcon,
   Cog6ToothIcon,
@@ -12,6 +13,7 @@ import { ConfigSection } from "./components/ConfigSection";
 import { ConfigsSection } from "./sections/ConfigsSection";
 import { HelpSection } from "./sections/HelpSection";
 import { IndexingSettingsSection } from "./sections/IndexingSettingsSection";
+import { PersonaSection } from "./sections/PersonaSection";
 import { ModelsSection } from "./sections/ModelsSection";
 import { RulesSection } from "./sections/RulesSection";
 import { ToolsSection } from "./sections/ToolsSection";
@@ -78,6 +80,18 @@ export const topTabSections: TabSection[] = [
         ),
         icon: (
           <WrenchScrewdriverIcon className="xs:h-4 xs:w-4 h-3 w-3 flex-shrink-0" />
+        ),
+      },
+      {
+        id: "persona",
+        label: "Persona",
+        component: (
+          <ConfigSection>
+            <PersonaSection />
+          </ConfigSection>
+        ),
+        icon: (
+          <AdjustmentsHorizontalIcon className="xs:h-4 xs:w-4 h-3 w-3 flex-shrink-0" />
         ),
       },
     ],

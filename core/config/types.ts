@@ -1239,6 +1239,16 @@ declare global {
     analytics?: AnalyticsConfig;
     docs?: SiteIndexingConfig[];
     tools: Tool[];
+    personas?: Array<{
+      id: string; // Required
+      name: string; // Required
+      roleDefinition: string; // Required
+      whenToUse: string; // Required
+      apiConfiguration?: string;
+      shortDescription?: string;
+      availableTools?: string;
+      customInstructions?: string;
+    }>;
   }
   
   export interface BrowserSerializedContinueConfig {

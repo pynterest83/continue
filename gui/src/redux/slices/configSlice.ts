@@ -2,6 +2,11 @@ import { ConfigResult, ConfigValidationError } from "@continuedev/config-yaml";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { BrowserSerializedContinueConfig } from "core";
 import { DEFAULT_CONTEXT_LENGTH } from "core/llm/constants";
+import {
+  DEFAULT_PERSONAS,
+  isDefaultPersona,
+} from "../../pages/config/sections/defaultPersonas";
+import { Persona } from "../../pages/config/sections/PersonaSection";
 
 export type ConfigState = {
   configError: ConfigValidationError[] | undefined;
@@ -94,6 +99,23 @@ export const configSlice = createSlice({
     selectUIConfig: (state) => {
       return state.config?.ui ?? null;
     },
+    selectPersonas: (state) => {
+      return state.config.personas;
+    },
+    selectPersonaByName: (state, name: string): Persona | undefined => {
+      // Built-in persona, with customInstructions from config if overridden
+      if (isDefaultPersona(name)) {
+        const defaultPersona = DEFAULT_PERSONAS.find((p) => p.name === name);
+        if (defaultPersona) {
+          const override = state.config.personas?.find((p) => p.name === name);
+          return {
+            ...defaultPersona,
+            customInstructions: override?.customInstructions || "",
+          };
+        }
+      }
+      return state.config.personas?.find((m) => m.name === name);
+    },
   },
 });
 
@@ -104,6 +126,8 @@ export const {
   selectSelectedChatModelContextLength,
   selectUIConfig,
   selectSelectedChatModel,
+  selectPersonas,
+  selectPersonaByName,
 } = configSlice.selectors;
 
 export default configSlice.reducer;

@@ -87,3 +87,5 @@ export function isPrerelease() {
 export function isLocalProfile(_profile: ProfileDescription): boolean {
   return true;
 }
+
+export { slugify } from "./slugify";

@@ -112,6 +112,20 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   ];
   "config/openProfile": [{ profileId: string | undefined }, void];
   "config/updateSharedConfig": [SharedConfigSchema, SharedConfigSchema];
+  "config/updatePersonas": [
+    Array<{
+      id?: string;
+      name: string;
+      profileId?: string;
+      apiConfiguration?: string;
+      roleDefinition?: string;
+      shortDescription?: string;
+      whenToUse?: string;
+      availableTools?: string;
+      customInstructions?: string;
+    }>,
+    void,
+  ];
   "config/updateSelectedModel": [
     {
       profileId: string;

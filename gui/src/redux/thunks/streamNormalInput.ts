@@ -4,7 +4,10 @@ import { getRuleId } from "core/llm/rules/getSystemMessageWithRules";
 import { ToCoreProtocol } from "core/protocol";
 import { BUILT_IN_GROUP_NAME } from "core/tools/builtIn";
 import { selectActiveTools } from "../selectors/selectActiveTools";
-import { selectSelectedChatModel } from "../slices/configSlice";
+import {
+  selectPersonaByName,
+  selectSelectedChatModel,
+} from "../slices/configSlice";
 import {
   abortStream,
   addPromptCompletionPair,
@@ -89,6 +92,10 @@ export const streamNormalInput = createAsyncThunk<
     }
     const state = getState();
     const selectedChatModel = selectSelectedChatModel(state);
+    const selectedPersonaName = state.session.selectedPersona;
+    const selectedPersona = selectedPersonaName
+      ? selectPersonaByName(state, selectedPersonaName)
+      : undefined;
 
     if (!selectedChatModel) {
       throw new Error("No chat model selected");
@@ -137,6 +144,7 @@ export const streamNormalInput = createAsyncThunk<
       state.session.mode,
       selectedChatModel,
       activeTools,
+      selectedPersona,
     );
 
     const systemMessage = systemToolsFramework

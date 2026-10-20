@@ -656,6 +656,7 @@ async function finalToBrowserConfig(
         v ? llmToSerializedModelDescription(v) : null,
       ]),
     ) as Record<ModelRole, ModelDescription | null>, // TODO better types here
+    personas: final.personas,
     // data not included here because client doesn't need
   };
 }

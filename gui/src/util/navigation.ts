@@ -3,6 +3,7 @@ export type ConfigTab =
   | "models"
   | "rules"
   | "tools"
+  | "persona"
   | "configs"
   | "indexing"
   | "settings"
@@ -28,6 +29,7 @@ export const CONFIG_ROUTES = {
   MODELS: buildConfigRoute("models"),
   RULES: buildConfigRoute("rules"),
   TOOLS: buildConfigRoute("tools"),
+  PERSONA: buildConfigRoute("persona"),
   CONFIGS: buildConfigRoute("configs"),
   INDEXING: buildConfigRoute("indexing"),
   SETTINGS: buildConfigRoute("settings"),

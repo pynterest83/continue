@@ -223,6 +223,7 @@ type SessionState = {
   contextPercentage?: number;
   inlineErrorMessage?: InlineErrorMessageType;
   compactionLoading: Record<number, boolean>; // Track compaction loading by message index
+  selectedPersona?: string | null;
 };
 
 export const INITIAL_SESSION_STATE: SessionState = {
@@ -1001,6 +1002,9 @@ export const sessionSlice = createSlice({
     setContextPercentage: (state, action: PayloadAction<number>) => {
       state.contextPercentage = action.payload;
     },
+    setSelectedPersona: (state, action: PayloadAction<string | null>) => {
+      state.selectedPersona = action.payload;
+    },
   },
   selectors: {
     selectIsGatheringContext: (state) => {
@@ -1090,6 +1094,7 @@ export const {
   setIsPruned,
   setContextPercentage,
   setCompactionLoading,
+  setSelectedPersona,
 } = sessionSlice.actions;
 
 export const { selectIsGatheringContext } = sessionSlice.selectors;

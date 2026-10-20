@@ -455,6 +455,45 @@ export class Core {
       return newSharedConfig;
     });
 
+    on("config/updatePersonas", async (msg) => {
+      const { editConfigFile } = await import("./util/paths");
+      try {
+        editConfigFile(
+          (c) => c,
+          (config: ConfigYaml) => {
+            // Remove undefined fields from personas before saving
+            const cleanedPersonas = msg.data.map((persona) => {
+              const cleaned: any = {};
+              if (persona.id) cleaned.id = persona.id;
+              if (persona.name) cleaned.name = persona.name;
+              if (persona.profileId) cleaned.profileId = persona.profileId;
+              if (persona.apiConfiguration)
+                cleaned.apiConfiguration = persona.apiConfiguration;
+              if (persona.roleDefinition)
+                cleaned.roleDefinition = persona.roleDefinition;
+              if (persona.shortDescription)
+                cleaned.shortDescription = persona.shortDescription;
+              if (persona.whenToUse) cleaned.whenToUse = persona.whenToUse;
+              if (persona.availableTools)
+                cleaned.availableTools = persona.availableTools;
+              if (persona.customInstructions)
+                cleaned.customInstructions = persona.customInstructions;
+              return cleaned;
+            });
+            config.personas =
+              cleanedPersonas.length > 0 ? cleanedPersonas : undefined;
+            return config;
+          },
+        );
+        await this.configHandler.reloadConfig(
+          "Personas update (config/updatePersonas message)",
+        );
+      } catch (error) {
+        console.error("Error updating personas:", error);
+        throw error;
+      }
+    });
+
     on("config/updateSelectedModel", async (msg) => {
       const newSelectedModels = this.globalContext.updateSelectedModel(
         msg.data.profileId,

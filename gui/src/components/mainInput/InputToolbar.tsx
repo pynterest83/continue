@@ -21,6 +21,7 @@ import { getMetaKeyLabel, isMetaEquivalentKeyPressed } from "../../util";
 import { ToolTip } from "../gui/Tooltip";
 import ModelSelect from "../modelSelection/ModelSelect";
 import { ModeSelect } from "../ModeSelect";
+import PersonaSelect from "../personaSelection/PersonaSelect";
 import { Button } from "../ui";
 import { useFontSize } from "../ui/font";
 import ContextStatus from "./ContextStatus";
@@ -96,6 +97,13 @@ function InputToolbar(props: InputToolbarProps) {
               <ModelSelect />
             </HoverItem>
           </ToolTip>
+          {!isInEdit && (
+            <ToolTip place="top" content="Select Persona">
+              <HoverItem className="!p-0">
+                <PersonaSelect />
+              </HoverItem>
+            </ToolTip>
+          )}
           <div className="xs:flex text-description -mb-1 hidden items-center transition-colors duration-200">
             {props.toolbarOptions?.hideImageUpload ||
               (supportsImages && (

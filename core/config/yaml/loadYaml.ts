@@ -153,6 +153,16 @@ function nonNullifyConfigYaml(
   };
 }
 
+/** Same as gui/src/util/slugify.ts, which builds the IDs of built-in personas. */
+function personaIdFromName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function configYamlToContinueConfig(options: {
   unrolledAssistant: AssistantUnrolled;
   ide: IDE;
@@ -191,6 +201,14 @@ export async function configYamlToContinueConfig(options: {
     },
     rules: [],
     requestOptions: { ...unrolledAssistant.requestOptions },
+    personas: unrolledAssistant.personas
+      ?.filter((p): p is NonNullable<typeof p> => !!p && typeof p.name === "string")
+      .map((p) => ({
+        ...p,
+        id: p.id ?? personaIdFromName(p.name),
+        roleDefinition: p.roleDefinition ?? "",
+        whenToUse: p.whenToUse ?? "",
+      })),
   };
 
   const config = nonNullifyConfigYaml(unrolledAssistant);

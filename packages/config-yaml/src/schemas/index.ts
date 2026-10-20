@@ -48,6 +48,19 @@ const ruleObjectSchema = z.object({
 });
 const ruleSchema = z.union([z.string(), ruleObjectSchema]);
 
+// Custom personas have all fields. Overrides of built-in personas only store
+// name + customInstructions; missing fields are filled in when loading.
+const personaSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  roleDefinition: z.string().optional(),
+  whenToUse: z.string().optional(),
+  apiConfiguration: z.string().optional(),
+  shortDescription: z.string().optional(),
+  availableTools: z.string().optional(),
+  customInstructions: z.string().optional(),
+});
+
 /**
  * A schema for rules.json files
  */
@@ -150,6 +163,7 @@ export const configYamlSchema = baseConfigYamlSchema.extend({
     .optional(),
   prompts: z.array(blockOrSchema(promptSchema)).optional(),
   docs: z.array(blockOrSchema(docSchema)).optional(),
+  personas: z.array(personaSchema).optional(),
 });
 
 export type ConfigYaml = z.infer<typeof configYamlSchema>;
@@ -162,6 +176,7 @@ export const assistantUnrolledSchema = baseConfigYamlSchema.extend({
   rules: z.array(ruleSchema.nullable()).optional(),
   prompts: z.array(promptSchema.nullable()).optional(),
   docs: z.array(docSchema.nullable()).optional(),
+  personas: z.array(personaSchema.nullable()).optional(),
 });
 
 export type AssistantUnrolled = z.infer<typeof assistantUnrolledSchema>;

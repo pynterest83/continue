@@ -398,6 +398,7 @@ export async function unrollBlocks(
     | "metadata"
     | "env"
     | "requestOptions"
+    | "personas"
   >)[] = ["models", "context", "data", "mcpServers", "prompts", "docs"];
 
   // Process all sections in parallel
@@ -638,8 +639,15 @@ export async function unrollBlocks(
   // Assign section results
   for (const sectionResult of sectionResults) {
     if (sectionResult.blocks) {
-      unrolledAssistant[sectionResult.section] = sectionResult.blocks.filter(
-        (block) => !detector.isDuplicated(block, sectionResult.section),
+      const section = sectionResult.section as
+        | "models"
+        | "context"
+        | "data"
+        | "mcpServers"
+        | "prompts"
+        | "docs";
+      unrolledAssistant[section] = sectionResult.blocks.filter(
+        (block) => !detector.isDuplicated(block, section),
       );
     }
   }
@@ -648,6 +656,13 @@ export async function unrollBlocks(
   if (rulesResult.rules) {
     unrolledAssistant.rules = rulesResult.rules.filter(
       (rule) => !detector.isDuplicated(rule, "rules"),
+    );
+  }
+
+  // Assign personas (simple field, not a block type)
+  if (assistant.personas) {
+    unrolledAssistant.personas = assistant.personas.filter(
+      (m) => m !== null && typeof m.name === "string",
     );
   }
 

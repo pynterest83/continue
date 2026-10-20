@@ -1850,6 +1850,16 @@ export interface ContinueConfig {
   modelsByRole: Record<ModelRole, ILLM[]>;
   selectedModelByRole: Record<ModelRole, ILLM | null>;
   data?: DataDestination[];
+  personas?: Array<{
+    id: string;
+    name: string;
+    apiConfiguration?: string;
+    roleDefinition: string;
+    shortDescription?: string;
+    whenToUse: string;
+    availableTools?: string;
+    customInstructions?: string;
+  }>;
 }
 
 export interface BrowserSerializedContinueConfig {
@@ -1872,6 +1882,16 @@ export interface BrowserSerializedContinueConfig {
   tabAutocompleteOptions?: Partial<TabAutocompleteOptions>;
   modelsByRole: Record<ModelRole, ModelDescription[]>;
   selectedModelByRole: Record<ModelRole, ModelDescription | null>;
+  personas?: Array<{
+    id: string;
+    name: string;
+    apiConfiguration?: string;
+    roleDefinition: string;
+    whenToUse: string;
+    shortDescription?: string;
+    availableTools?: string;
+    customInstructions?: string;
+  }>;
 }
 
 // DOCS SUGGESTIONS AND PACKAGE INFO

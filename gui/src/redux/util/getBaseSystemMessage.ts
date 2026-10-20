@@ -4,6 +4,7 @@ import {
   DEFAULT_CHAT_SYSTEM_MESSAGE,
   DEFAULT_PLAN_SYSTEM_MESSAGE,
 } from "core/llm/defaultSystemMessages";
+import { Persona } from "../../pages/config/sections/PersonaSection";
 
 export const NO_TOOL_WARNING =
   "\n\nTHE USER HAS NOT PROVIDED ANY TOOLS, DO NOT ATTEMPT TO USE ANY TOOLS. STOP AND LET THE USER KNOW THAT THERE ARE NO TOOLS AVAILABLE. The user can provide tools by enabling them in the Tool Policies section of the notch (wrench icon)";
@@ -12,6 +13,7 @@ export function getBaseSystemMessage(
   messageMode: string,
   model: ModelDescription,
   activeTools?: Tool[],
+  persona?: Persona,
 ): string {
   let baseMessage: string;
 
@@ -28,5 +30,34 @@ export function getBaseSystemMessage(
     baseMessage += NO_TOOL_WARNING;
   }
 
+  if (persona) {
+    baseMessage += "\n\n" + buildPersonaSystemMessage(persona);
+  }
+
   return baseMessage;
+}
+
+function buildPersonaSystemMessage(persona: Persona) {
+  let message = "";
+
+  if (persona.roleDefinition) {
+    message += persona.roleDefinition;
+  }
+
+  const customInstructions = persona.customInstructions || persona.whenToUse;
+  if (customInstructions) {
+    if (message) {
+      message += "\n\n";
+    }
+    message += customInstructions;
+  }
+
+  if (persona.availableTools) {
+    if (message) {
+      message += "\n\n";
+    }
+    message += `Available Tools: ${persona.availableTools}`;
+  }
+
+  return message;
 }
