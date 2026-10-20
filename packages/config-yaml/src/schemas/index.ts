@@ -31,6 +31,7 @@ const agentSchema = z.object({
   command: z.string().optional(),
   args: z.array(z.string()).optional(),
   env: z.record(z.string(), z.string()).optional(),
+  allowSelectModel: z.boolean().optional(),
 });
 
 export type AgentDescription = z.infer<typeof agentSchema>;

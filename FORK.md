@@ -1,6 +1,6 @@
 # Fork notes
 
-Fork của [continuedev/continue](https://github.com/continuedev/continue), bổ sung engine autocomplete v2, next edit theo format Sweep, và fast apply bằng model finetune. File này ghi những gì khác upstream và cách cấu hình.
+Fork của [continuedev/continue](https://github.com/continuedev/continue), bổ sung engine autocomplete v2, next edit theo format Sweep, fast apply bằng model finetune, chạy coding agent bên ngoài qua ACP, và personas. File này ghi những gì khác upstream và cách cấu hình.
 
 ## Nhánh
 
@@ -27,6 +27,10 @@ git rebase upstream/main fork/main
 | Fast apply bằng model finetune (`fast-apply-ft`) cho role `apply` | `core/edit/lazy/fastApply.ts` |
 | Cập nhật VSIX từ server tự host (`continue.intranetUpdateServerUrl`) | `extensions/vscode/src/services/IntranetUpdateService.ts` |
 | Lệnh `Benchmark Autocomplete v2 provider` / `Benchmark Continue Autocomplete provider` | `extensions/vscode/src/commands.ts` |
+| Chạy coding agent bên ngoài (OpenCode, Gemini CLI, Qwen Code…) làm "não" của phiên chat qua Agent Client Protocol | `core/acp/`, `gui/src/components/dialogs/NewSessionDialog.tsx`, `BrainModeSelect.tsx` |
+| Personas: vai trò, hướng dẫn và danh sách tool được chèn vào system message của LLM | `gui/src/pages/config/sections/PersonaSection.tsx`, `gui/src/components/personaSelection/` |
+| Tool `get_file_diagnostics` (lỗi của file từ IDE) và `call_mcp_tool_with_file` (đọc file rồi truyền nội dung cho một tool MCP) | `core/tools/definitions/` |
+| Tùy chọn "Auto (High Risk)": tự duyệt cả lệnh terminal bị đánh giá là nguy hiểm | `gui/src/redux/thunks/evaluateToolPolicies.ts` |
 
 Format prompt của next edit và fast apply phải giống từng byte với format dùng lúc train model. `sweep.vitest.ts` và `fastApply.vitest.ts` giữ cố định format này.
 
@@ -86,10 +90,49 @@ models:
     roles: [apply]
 ```
 
+### Agent bên ngoài (ACP)
+
+```yaml
+agent_servers:
+  - name: OpenCode
+    provider: opencode          # có sẵn lệnh mặc định: opencode acp
+  - name: Gemini CLI
+    provider: gemini            # gemini --experimental-acp
+  - name: My Agent
+    provider: custom
+    command: my-agent
+    args: ["--acp"]
+    env: { MY_AGENT_TOKEN: "..." }
+    allowSelectModel: true      # cho phép chọn model của agent trong khung chat
+```
+
+Khi có `agent_servers`, lệnh New Session hỏi phiên mới do LLM hay agent nào điều khiển. Agent chạy trong thư mục gốc của workspace. Mỗi agent có một tiến trình, mỗi cuộc hội thoại có một session ACP. Agent ghi file thì thay đổi hiện dưới dạng diff để người dùng duyệt, và yêu cầu quyền (ví dụ chạy lệnh) hiện thành hộp thoại. Picker mode/model hiển thị mode và model do agent báo về. Personas không áp dụng cho phiên agent.
+
+### Personas
+
+Có sẵn các persona Code, Architect, Ask… Persona tự tạo được lưu trong `config.yaml`:
+
+```yaml
+personas:
+  - id: reviewer
+    name: Reviewer
+    roleDefinition: You are a meticulous code reviewer.
+    whenToUse: Review diffs for bugs, security issues and missing tests.
+    availableTools: Read Files, Search Codebase
+    customInstructions: Reply in Vietnamese.
+  - name: Code                  # chỉ ghi đè customInstructions của persona có sẵn
+    customInstructions: Prefer small, focused functions.
+```
+
+### Quyền của tool
+
+- `call_mcp_tool_with_file` gọi được mọi tool MCP, kể cả tool ghi hoặc xóa, nên mặc định phải xin phép.
+- "Auto (High Risk)" được bật riêng cho từng tool (hiện chỉ áp dụng cho `run_terminal_command`). Khi bật, các lệnh mà bộ kiểm tra bảo mật đánh dấu là nguy hiểm sẽ chạy không hỏi. Mặc định tắt.
+
 ## Build và kiểm tra
 
 ```bash
-./scripts/install-dependencies.sh
+./scripts/install-dependencies.sh   # npm install: thêm @agentclientprotocol/sdk vào package-lock (commit lại lockfile)
 (cd core && npm run tsc:check && npx vitest run nextEdit/templating/sweep.vitest.ts edit/lazy/fastApply.vitest.ts)
 (cd extensions/vscode && npm run tsc:check && npm run package)
 ```
