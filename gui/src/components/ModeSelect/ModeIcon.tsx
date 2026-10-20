@@ -4,10 +4,9 @@ import {
   SparklesIcon,
   SwatchIcon,
 } from "@heroicons/react/24/outline";
-import { MessageModes } from "core";
 
 interface ModeIconProps {
-  mode: MessageModes;
+  mode: string;
   className?: string;
 }
 
@@ -17,6 +16,7 @@ export function ModeIcon({
 }: ModeIconProps) {
   switch (mode) {
     case "agent":
+    case "build": // Default for opencode
       return <SparklesIcon className={className} />;
     case "plan":
       return <SwatchIcon className={className} />;
@@ -24,5 +24,7 @@ export function ModeIcon({
       return <ChatBubbleLeftIcon className={className} />;
     case "background":
       return <RocketLaunchIcon className={className} />;
+    default:
+      return <SparklesIcon className={className} />;
   }
 }

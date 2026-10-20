@@ -5,11 +5,12 @@ import {
   CubeIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/Auth";
 import { AddModelForm } from "../../forms/AddModelForm";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { setAgentModel } from "../../redux/slices/sessionSlice";
 import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
 import { updateSelectedModelByRole } from "../../redux/thunks/updateSelectedModelByRole";
 import { getMetaKeyLabel, isMetaEquivalentKeyPressed } from "../../util";
@@ -124,28 +125,68 @@ function ModelSelect() {
   const isInEdit = useAppSelector((store) => store.session.isInEdit);
   const config = useAppSelector((state) => state.config.config);
   const isConfigLoading = useAppSelector((state) => state.config.loading);
+
+  const activeAgentId = useAppSelector((store) => store.session.activeAgentId);
+  const brainMode = useAppSelector((store) => store.session.brainMode);
+  const availableAgentModels = useAppSelector(
+    (store) => store.session.availableAgentModels,
+  );
+  const currentAgentModel = useAppSelector(
+    (store) => store.session.currentAgentModel,
+  );
+
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [options, setOptions] = useState<Option[]>([]);
   const [sortedOptions, setSortedOptions] = useState<Option[]>([]);
   const { selectedProfile } = useAuth();
   const tinyFont = useFontSize(-4);
 
-  let selectedModel = null;
-  let allModels = null;
-  if (isInEdit) {
-    allModels = config.modelsByRole.edit;
-    selectedModel = config.selectedModelByRole.edit;
-  }
-  if (!selectedModel) {
-    selectedModel = config.selectedModelByRole.chat;
-  }
-  if (!allModels || allModels.length === 0) {
-    allModels = config.modelsByRole.chat;
-  }
+  const { allModels, selectedModel } = useMemo(() => {
+    let models: any[] = [];
+    let selected: any = null;
+
+    if (brainMode === "agent") {
+      models = availableAgentModels.map((m) => ({
+        title: m.name || m.modelId,
+        value: m.modelId,
+        apiKey: "exists", // dummy to avoid missing key msg
+      }));
+      selected = {
+        title:
+          availableAgentModels.find((m) => m.modelId === currentAgentModel)
+            ?.name || currentAgentModel,
+        value: currentAgentModel,
+      };
+    } else {
+      if (isInEdit) {
+        models = config.modelsByRole.edit;
+        selected = config.selectedModelByRole.edit;
+      }
+      if (!selected) {
+        selected = config.selectedModelByRole.chat;
+      }
+      if (!models || models.length === 0) {
+        models = config.modelsByRole.chat;
+      }
+    }
+
+    return { allModels: models, selectedModel: selected };
+  }, [
+    brainMode,
+    availableAgentModels,
+    currentAgentModel,
+    isInEdit,
+    config.modelsByRole.edit,
+    config.modelsByRole.chat,
+    config.selectedModelByRole.edit,
+    config.selectedModelByRole.chat,
+  ]);
 
   // Sort so that options without an API key are at the end
   useEffect(() => {
-    const alphaSort = options.sort((a, b) => a.title.localeCompare(b.title));
+    const alphaSort = [...options].sort((a, b) =>
+      a.title.localeCompare(b.title),
+    );
     const enabledOptions = alphaSort.filter((option) => option.apiKey !== "");
     const disabledOptions = alphaSort.filter((option) => option.apiKey === "");
 
@@ -155,18 +196,28 @@ function ModelSelect() {
   }, [options]);
 
   useEffect(() => {
-    setOptions(
-      allModels.map((model) => {
-        return {
-          value: model.title,
-          title: modelSelectTitle(model),
-          apiKey: model.apiKey,
-          sourceFile: model.sourceFile,
-          isAutoDetected: model.isFromAutoDetect,
-        };
-      }),
-    );
-  }, [allModels]);
+    if (brainMode === "agent") {
+      setOptions(
+        availableAgentModels.map((m) => ({
+          value: m.modelId,
+          title: m.name || m.modelId,
+          apiKey: "exists",
+        })),
+      );
+    } else if (allModels) {
+      setOptions(
+        allModels.map((model) => {
+          return {
+            value: model.title,
+            title: modelSelectTitle(model),
+            apiKey: model.apiKey,
+            sourceFile: model.sourceFile,
+            isAutoDetected: model.isFromAutoDetect,
+          };
+        }),
+      );
+    }
+  }, [allModels, brainMode, availableAgentModels]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -183,17 +234,23 @@ function ModelSelect() {
         const currentIndex = options.findIndex(
           (option) => option.value === selectedModel?.title,
         );
+        if (currentIndex === -1) return;
+
         let nextIndex = (currentIndex + 1 * direction) % options.length;
         if (nextIndex < 0) nextIndex = options.length - 1;
         const newModelTitle = options[nextIndex].value;
 
-        void dispatch(
-          updateSelectedModelByRole({
-            selectedProfile,
-            role: "chat",
-            modelTitle: newModelTitle,
-          }),
-        );
+        if (brainMode === "agent") {
+          dispatch(setAgentModel(newModelTitle));
+        } else {
+          void dispatch(
+            updateSelectedModelByRole({
+              selectedProfile,
+              role: "chat",
+              modelTitle: newModelTitle,
+            }),
+          );
+        }
       }
     };
 
@@ -201,7 +258,7 @@ function ModelSelect() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [options, selectedModel]);
+  }, [options, selectedModel, brainMode, selectedProfile, dispatch]);
 
   function onClickAddModel(e: MouseEvent) {
     e.stopPropagation();
@@ -235,6 +292,10 @@ function ModelSelect() {
   return (
     <Listbox
       onChange={async (val: string) => {
+        if (brainMode === "agent") {
+          dispatch(setAgentModel(val));
+          return;
+        }
         if (val === selectedModel?.title) return;
         void dispatch(
           updateSelectedModelByRole({
@@ -251,8 +312,14 @@ function ModelSelect() {
           ref={buttonRef}
           className="text-description h-[18px] gap-1 border-none"
         >
-          <span className="line-clamp-1 break-all hover:brightness-110">
-            {modelSelectTitle(selectedModel) || "Select model"}
+          <span className="line-clamp-1 break-all text-[10px] hover:brightness-110">
+            {brainMode === "agent"
+              ? availableAgentModels.find(
+                  (m) => m.modelId === currentAgentModel,
+                )?.name ||
+                currentAgentModel ||
+                "Select agent model"
+              : modelSelectTitle(selectedModel) || "Select model"}
           </span>
           <ChevronDownIcon
             className="hidden h-2 w-2 flex-shrink-0 hover:brightness-110 min-[200px]:flex"
@@ -300,7 +367,7 @@ function ModelSelect() {
             )}
           </div>
 
-          {!isConfigLoading && (
+          {brainMode !== "agent" && !isConfigLoading && (
             <>
               <Divider className="!mb-0" />
               <ListboxOption

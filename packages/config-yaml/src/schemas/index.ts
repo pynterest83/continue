@@ -25,6 +25,16 @@ const promptSchema = z.object({
 
 export type Prompt = z.infer<typeof promptSchema>;
 
+const agentSchema = z.object({
+  name: z.string(),
+  provider: z.string(),
+  command: z.string().optional(),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
+});
+
+export type AgentDescription = z.infer<typeof agentSchema>;
+
 const docSchema = z.object({
   name: z.string(),
   startUrl: z.string(),
@@ -164,6 +174,7 @@ export const configYamlSchema = baseConfigYamlSchema.extend({
   prompts: z.array(blockOrSchema(promptSchema)).optional(),
   docs: z.array(blockOrSchema(docSchema)).optional(),
   personas: z.array(personaSchema).optional(),
+  agent_servers: z.array(blockOrSchema(agentSchema)).optional(),
 });
 
 export type ConfigYaml = z.infer<typeof configYamlSchema>;
@@ -177,6 +188,7 @@ export const assistantUnrolledSchema = baseConfigYamlSchema.extend({
   prompts: z.array(promptSchema.nullable()).optional(),
   docs: z.array(docSchema.nullable()).optional(),
   personas: z.array(personaSchema.nullable()).optional(),
+  agent_servers: z.array(agentSchema.nullable()).optional(),
 });
 
 export type AssistantUnrolled = z.infer<typeof assistantUnrolledSchema>;
@@ -189,6 +201,7 @@ export const assistantUnrolledSchemaNonNullable = baseConfigYamlSchema.extend({
   rules: z.array(ruleSchema).optional(),
   prompts: z.array(promptSchema).optional(),
   docs: z.array(docSchema).optional(),
+  agent_servers: z.array(agentSchema).optional(),
 });
 
 export type AssistantUnrolledNonNullable = z.infer<
@@ -204,7 +217,8 @@ export const isAssistantUnrolledNonNullable = (
   (!a.mcpServers || a.mcpServers.every((s) => s !== null)) &&
   (!a.rules || a.rules.every((r) => r !== null)) &&
   (!a.prompts || a.prompts.every((p) => p !== null)) &&
-  (!a.docs || a.docs.every((d) => d !== null));
+  (!a.docs || a.docs.every((d) => d !== null)) &&
+  (!a.agent_servers || a.agent_servers.every((ag) => ag !== null));
 
 export const blockSchema = baseConfigYamlSchema.and(
   z.union([

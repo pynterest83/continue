@@ -1,4 +1,4 @@
-import { ToolCallDelta, ToolCallState } from "core";
+import { ToolCallDelta, ToolCallState, ToolStatus } from "core";
 import { BuiltInToolNames } from "core/tools/builtIn";
 import { incrementalParseJson } from "core/util/incrementalParseJson";
 
@@ -8,6 +8,8 @@ import { incrementalParseJson } from "core/util/incrementalParseJson";
 export function addToolCallDeltaToState(
   toolCallDelta: ToolCallDelta,
   currentState: ToolCallState | undefined,
+  status?: ToolStatus,
+  fullReplacement?: boolean,
 ): ToolCallState {
   const currentCall = currentState?.toolCall;
 
@@ -32,7 +34,9 @@ export function addToolCallDeltaToState(
   const argsDelta = toolCallDelta.function?.arguments ?? "";
 
   let mergedName = currentName;
-  if (nameDelta.startsWith(currentName)) {
+  if (fullReplacement && nameDelta) {
+    mergedName = nameDelta;
+  } else if (nameDelta.startsWith(currentName)) {
     // Case where model progresssively streams name but full name each time e.g. "readFi" -> "readFil" -> "readFile"
     mergedName = nameDelta;
   } else if (!currentName.startsWith(nameDelta)) {
@@ -41,21 +45,22 @@ export function addToolCallDeltaToState(
 
   // Similar logic for args, with an extra JSON check
   let mergedArgs = currentArgs;
-  try {
-    // If args is JSON parseable, it is complete, don't add to it
-    JSON.parse(currentArgs);
-  } catch (e) {
-    // Model streams in args in parts e.g. "{"file": "file1"" -> ", "line": 1}"
-    mergedArgs = currentArgs + argsDelta;
-
-    // Note, removed case where model progresssively streams args but full args each time e.g. "{"file": "file1"}" -> "{"file": "file1", "line": 1}"
-    // Because no apis do this and difficult to detect reliably
+  if (fullReplacement && argsDelta) {
+    mergedArgs = argsDelta;
+  } else {
+    try {
+      // If args is JSON parseable, it is complete, don't add to it
+      JSON.parse(currentArgs);
+    } catch (e) {
+      // Model streams in args in parts e.g. "{"file": "file1"" -> ", "line": 1}"
+      mergedArgs = currentArgs + argsDelta;
+    }
   }
 
   const [_, parsedArgs] = incrementalParseJson(mergedArgs || "{}");
 
   return {
-    status: "generating",
+    status: status || currentState?.status || "generating",
     toolCall: {
       id: callId,
       type: callType,

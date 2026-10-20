@@ -15,6 +15,10 @@ export function mergePackages(
     rules: [...(current.rules ?? []), ...(incoming.rules ?? [])],
     prompts: [...(current.prompts ?? []), ...(incoming.prompts ?? [])],
     docs: [...(current.docs ?? []), ...(incoming.docs ?? [])],
+    agent_servers: [
+      ...(current.agent_servers ?? []),
+      ...(incoming.agent_servers ?? []),
+    ],
     env: { ...current.env, ...incoming.env },
     requestOptions: mergeConfigYamlRequestOptions(
       current.requestOptions,

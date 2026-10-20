@@ -40,6 +40,7 @@ export const EMPTY_CONFIG: BrowserSerializedContinueConfig = {
     subagent: null,
   },
   rules: [],
+  agent_servers: [],
 };
 
 export const INITIAL_CONFIG_SLICE: ConfigState = {

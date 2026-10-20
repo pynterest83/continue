@@ -13,7 +13,6 @@ import {
 } from "../redux/slices/profilesSlice";
 import {
   addContextItemsAtIndex,
-  newSession,
   setHasReasoningEnabled,
   setIsSessionMetadataLoading,
   setMode,
@@ -23,7 +22,11 @@ import { setTTSActive } from "../redux/slices/uiSlice";
 import { modelSupportsReasoning } from "core/llm/autodetect";
 import { cancelStream } from "../redux/thunks/cancelStream";
 import { handleApplyStateUpdate } from "../redux/thunks/handleApplyStateUpdate";
-import { loadSession, refreshSessionMetadata } from "../redux/thunks/session";
+import {
+  loadSession,
+  newSessionThunk,
+  refreshSessionMetadata,
+} from "../redux/thunks/session";
 import { updateFileSymbolsFromHistory } from "../redux/thunks/updateFileSymbols";
 import {
   setDocumentStylesFromLocalStorage,

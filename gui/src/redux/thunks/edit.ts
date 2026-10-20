@@ -15,7 +15,6 @@ import {
   updateEditStateApplyState,
 } from "../slices/editState";
 import {
-  newSession,
   setActive,
   setInactive,
   setIsInEdit,
@@ -23,7 +22,11 @@ import {
   setMode,
 } from "../slices/sessionSlice";
 import { ThunkApiType } from "../store";
-import { loadLastSession, saveCurrentSession } from "./session";
+import {
+  loadLastSession,
+  newSessionThunk,
+  saveCurrentSession,
+} from "./session";
 import { streamThunkWrapper } from "./streamThunkWrapper";
 
 export const streamEditThunk = createAsyncThunk<
@@ -107,7 +110,7 @@ export const exitEdit = createAsyncThunk<
   }
 
   if (openNewSession || state.editModeState.lastNonEditSessionWasEmpty) {
-    dispatch(newSession());
+    dispatch(newSessionThunk());
   } else {
     await dispatch(loadLastSession());
   }
@@ -140,7 +143,12 @@ export const enterEdit = createAsyncThunk<
     dispatch(setMainEditorContentTrigger({}));
     dispatch(setPreviousModeEditorContent(editorContent));
 
-    dispatch(setReturnToModeAfterEdit(returnToMode ?? state.session.mode));
+    // Edit mode is only reachable from LLM sessions, whose modes are MessageModes
+    dispatch(
+      setReturnToModeAfterEdit(
+        returnToMode ?? (state.session.mode as MessageModes),
+      ),
+    );
     dispatch(updateEditStateApplyState(INITIAL_EDIT_APPLY_STATE));
 
     await dispatch(

@@ -14,12 +14,12 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useNavigate } from "react-router-dom";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import {
-  newSession,
-  setAllSessionMetadata,
-} from "../../redux/slices/sessionSlice";
+import { setAllSessionMetadata } from "../../redux/slices/sessionSlice";
 import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
-import { refreshSessionMetadata } from "../../redux/thunks/session";
+import {
+  newSessionThunk,
+  refreshSessionMetadata,
+} from "../../redux/thunks/session";
 import { getFontSize, getPlatform } from "../../util";
 import { ROUTES } from "../../util/navigation";
 import ConfirmationDialog from "../dialogs/ConfirmationDialog";
@@ -134,7 +134,7 @@ export function History() {
             void dispatch(refreshSessionMetadata({}));
 
             // start a new session
-            dispatch(newSession());
+            dispatch(newSessionThunk());
             navigate(ROUTES.HOME);
           }}
         />,

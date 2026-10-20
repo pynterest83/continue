@@ -4,6 +4,7 @@ import { EditOperation } from "core/tools/definitions/multiEdit";
 import { CreateFile } from "./CreateFile";
 import { EditFile } from "./EditFile";
 import { FindAndReplaceDisplay } from "./FindAndReplace";
+import { QuestionToolCall } from "./QuestionToolCall";
 import { RunTerminalCommand } from "./RunTerminalCommand";
 
 function FunctionSpecificToolCallDiv({
@@ -72,6 +73,13 @@ function FunctionSpecificToolCallDiv({
           command={args?.command ?? ""}
           toolCallState={toolCallState}
           toolCallId={toolCall.id}
+        />
+      );
+    case "question":
+      return (
+        <QuestionToolCall
+          questions={args?.questions ?? []}
+          historyIndex={historyIndex}
         />
       );
     default:

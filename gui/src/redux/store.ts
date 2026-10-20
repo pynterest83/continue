@@ -42,6 +42,13 @@ const saveSubsetFilters = [
     // Persist edit mode in case closes in middle
     "mode",
 
+    // Persist agent brain settings
+    "brainMode",
+    "activeAgentId",
+    "currentAgentModel",
+    "availableAgentModels",
+    "availableAgentModes",
+
     // higher risk to persist
     // codeBlockApplyStates
     // symbols

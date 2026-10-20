@@ -3,7 +3,6 @@ import React, { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components";
 import { defaultBorderRadius } from "..";
-import { newSession } from "../../redux/slices/sessionSlice";
 import {
   addTab,
   handleSessionChange,
@@ -12,7 +11,11 @@ import {
   setTabs,
 } from "../../redux/slices/tabsSlice";
 import { AppDispatch, RootState } from "../../redux/store";
-import { loadSession, saveCurrentSession } from "../../redux/thunks/session";
+import {
+  loadSession,
+  newSessionThunk,
+  saveCurrentSession,
+} from "../../redux/thunks/session";
 import { varWithFallback } from "../../styles/theme";
 
 // Haven't set up theme colors for tabs yet
@@ -163,7 +166,7 @@ export const TabBar = React.forwardRef<HTMLDivElement>((_, ref) => {
       );
     }
 
-    dispatch(newSession());
+    dispatch(newSessionThunk());
 
     dispatch(
       addTab({
@@ -218,7 +221,7 @@ export const TabBar = React.forwardRef<HTMLDivElement>((_, ref) => {
         );
       } else {
         dispatch(setTabs([]));
-        dispatch(newSession());
+        dispatch(newSessionThunk());
       }
     } else {
       dispatch(removeTab(id));

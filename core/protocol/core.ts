@@ -359,4 +359,52 @@ export type ToCoreFromIdeOrWebviewProtocol = {
       supportsTools?: boolean;
     }[],
   ];
+  "acp/connect": [
+    {
+      agentId: string;
+      mode?: string;
+      model?: string;
+      conversationId?: string;
+    },
+    {
+      success: boolean;
+      error?: string;
+      models?: { modelId: string; name?: string }[];
+      modes?: { id: string; name?: string }[];
+      allowSelectModel?: boolean;
+    },
+  ];
+  "acp/streamChat": [
+    {
+      prompt: string;
+      mode?: string;
+      model?: string;
+      agentId?: string;
+      conversationId?: string;
+    },
+    void,
+  ];
+  "acp/setSessionMode": [
+    {
+      mode: string;
+      agentId?: string;
+      conversationId?: string;
+    },
+    void,
+  ];
+  "acp/newSession": [
+    {
+      agentId?: string;
+      conversationId?: string;
+      mode?: string;
+    },
+    { sessionId: string },
+  ];
+  "acp/cancel": [
+    {
+      agentId?: string;
+      conversationId?: string;
+    },
+    void,
+  ];
 };

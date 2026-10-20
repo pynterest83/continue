@@ -342,7 +342,7 @@ const MemoInner = memo(
 
 export function TipTapEditor(props: TipTapEditorProps) {
   return (
-    <div className="relative w-full">
+    <div className="relative w-[calc(100%-2px)]">
       <MemoInner {...props} />
     </div>
   );

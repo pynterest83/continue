@@ -492,7 +492,7 @@ export interface PromptLog {
   completion: string;
 }
 
-export type MessageModes = "chat" | "agent" | "plan" | "background";
+export type MessageModes = "chat" | "agent" | "plan" | "background" | string;
 
 export type ToolStatus =
   | "generating" // Tool call arguments are being streamed from the LLM
@@ -1749,6 +1749,20 @@ export interface JSONModelDescription {
   isFromAutoDetect?: boolean;
 }
 
+export interface AgentModeDescription {
+  id: string;
+  name?: string;
+}
+
+export interface AgentDescription {
+  name: string;
+  provider: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  allowSelectModel?: boolean;
+}
+
 // config.json
 export interface SerializedContinueConfig {
   env?: string[];
@@ -1768,6 +1782,7 @@ export interface SerializedContinueConfig {
   tabAutocompleteOptions?: Partial<TabAutocompleteOptions>;
   ui?: ContinueUIConfig;
   reranker?: RerankerDescription;
+  agent_servers?: AgentDescription[];
   experimental?: ExperimentalConfig;
   analytics?: AnalyticsConfig;
   docs?: SiteIndexingConfig[];
@@ -1826,6 +1841,7 @@ export interface Config {
   analytics?: AnalyticsConfig;
   docs?: SiteIndexingConfig[];
   data?: DataDestination[];
+  agent_servers?: AgentDescription[];
 }
 
 // in the actual Continue source code
@@ -1860,6 +1876,7 @@ export interface ContinueConfig {
     availableTools?: string;
     customInstructions?: string;
   }>;
+  agent_servers?: AgentDescription[];
 }
 
 export interface BrowserSerializedContinueConfig {
@@ -1892,6 +1909,7 @@ export interface BrowserSerializedContinueConfig {
     availableTools?: string;
     customInstructions?: string;
   }>;
+  agent_servers?: AgentDescription[];
 }
 
 // DOCS SUGGESTIONS AND PACKAGE INFO

@@ -18,6 +18,7 @@ import { setHasReasoningEnabled } from "../../redux/slices/sessionSlice";
 import { setReasoningSetting } from "../../redux/slices/uiSlice";
 import { exitEdit } from "../../redux/thunks/edit";
 import { getMetaKeyLabel, isMetaEquivalentKeyPressed } from "../../util";
+import { BrainModeSelect } from "../BrainModeSelect";
 import { ToolTip } from "../gui/Tooltip";
 import ModelSelect from "../modelSelection/ModelSelect";
 import { ModeSelect } from "../ModeSelect";
@@ -58,6 +59,10 @@ function InputToolbar(props: InputToolbarProps) {
   const hasReasoningEnabled = useAppSelector(
     (store) => store.session.hasReasoningEnabled,
   );
+  const brainMode = useAppSelector((state) => state.session.brainMode);
+  const allowSelectModel = useAppSelector(
+    (state) => state.session.allowSelectModel,
+  );
   const isEnterDisabled =
     props.disabled || (isInEdit && codeToEdit.length === 0);
 
@@ -85,6 +90,16 @@ function InputToolbar(props: InputToolbarProps) {
         }}
       >
         <div className="xs:gap-1.5 flex flex-row items-center gap-1">
+          {/* Agent mode: Show BrainModeSelect -> ModeSelect -> ModelSelect */}
+          {brainMode === "agent" && (
+            <ToolTip place="top" content="Can't change agent">
+              <HoverItem className="!p-0">
+                <BrainModeSelect disabled />
+              </HoverItem>
+            </ToolTip>
+          )}
+
+          {/* Show ModeSelect for both modes when not in edit */}
           {!isInEdit && (
             <ToolTip place="top" content="Select Mode">
               <HoverItem className="!p-0">
@@ -92,12 +107,17 @@ function InputToolbar(props: InputToolbarProps) {
               </HoverItem>
             </ToolTip>
           )}
-          <ToolTip place="top" content="Select Model">
-            <HoverItem className="!p-0">
-              <ModelSelect />
-            </HoverItem>
-          </ToolTip>
-          {!isInEdit && (
+          {/* Model picker: always for LLM sessions; for agents only if they allow it */}
+          {(brainMode === "llm" ||
+            (brainMode === "agent" && allowSelectModel)) && (
+            <ToolTip place="top" content="Select Model">
+              <HoverItem className="!p-0">
+                <ModelSelect />
+              </HoverItem>
+            </ToolTip>
+          )}
+          {/* Personas extend the LLM system message, so not for agent sessions */}
+          {!isInEdit && brainMode === "llm" && (
             <ToolTip place="top" content="Select Persona">
               <HoverItem className="!p-0">
                 <PersonaSelect />

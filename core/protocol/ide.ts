@@ -1,4 +1,5 @@
 import type {
+  ApplyToFilePayload,
   DocumentSymbol,
   FileStatsMap,
   FileType,
@@ -19,6 +20,7 @@ export interface GetGhTokenArgs {
 }
 
 export type ToIdeFromWebviewOrCoreProtocol = {
+  applyToFile: [ApplyToFilePayload, void];
   // Methods from IDE type
   getIdeInfo: [undefined, IdeInfo];
   getWorkspaceDirs: [undefined, string[]];

@@ -128,20 +128,30 @@ export class VsCodeMessenger {
       );
     });
 
-    this.onWebview("applyToFile", async ({ data }) => {
-      const [verticalDiffManager, configHandler] = await Promise.all([
-        verticalDiffManagerPromise,
-        configHandlerPromise,
-      ]);
+    this.onWebviewOrCore("applyToFile", async ({ data, messageId }) => {
+      console.log("VsCodeMessenger handling applyToFile", { data, messageId });
+      if (!data || (data as any).status || (data as any).done) {
+        console.log("Ignoring applyToFile message that looks like a response");
+        return;
+      }
+      try {
+        const [verticalDiffManager, configHandler] = await Promise.all([
+          verticalDiffManagerPromise,
+          configHandlerPromise,
+        ]);
 
-      const applyManager = new ApplyManager(
-        this.ide,
-        webviewProtocol,
-        verticalDiffManager,
-        configHandler,
-      );
+        const applyManager = new ApplyManager(
+          this.ide,
+          webviewProtocol,
+          verticalDiffManager,
+          configHandler,
+        );
 
-      await applyManager.applyToFile(data);
+        await applyManager.applyToFile(data);
+      } catch (e) {
+        console.error("Error in applyToFile handler", e);
+        throw e;
+      }
     });
 
     this.onWebview("showTutorial", async (msg) => {

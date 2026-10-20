@@ -22,6 +22,7 @@ const BLOCK_TYPE_CONFIG: Record<
   prompts: { singular: "prompt", filename: "prompt" },
   mcpServers: { singular: "MCP server", filename: "mcp-server" },
   data: { singular: "data", filename: "data" },
+  agent_servers: { singular: "agent", filename: "agent" },
 };
 
 function getContentsForNewBlock(blockType: BlockType): ConfigYaml {
@@ -77,6 +78,14 @@ function getContentsForNewBlock(blockType: BlockType): ConfigYaml {
           command: "npx",
           args: ["-y", "<your-mcp-server>"],
           env: {},
+        },
+      ];
+      break;
+    case "agent_servers":
+      configYaml.agent_servers = [
+        {
+          name: "New agent",
+          provider: "new-agent",
         },
       ];
       break;

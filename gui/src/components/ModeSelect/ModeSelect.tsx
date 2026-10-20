@@ -4,9 +4,9 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { MessageModes } from "core";
 import { isRecommendedAgentModel } from "core/llm/toolSupport";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useContext, useEffect, useMemo } from "react";
+import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { selectSelectedChatModel } from "../../redux/slices/configSlice";
 import { setMode } from "../../redux/slices/sessionSlice";
@@ -19,7 +19,20 @@ import { ModeIcon } from "./ModeIcon";
 export function ModeSelect() {
   const dispatch = useAppDispatch();
   const mode = useAppSelector((store) => store.session.mode);
+  const sessionId = useAppSelector((store) => store.session.id);
+  const brainMode = useAppSelector((store) => store.session.brainMode);
+  const activeAgentId = useAppSelector((store) => store.session.activeAgentId);
+  const availableAgentModes = useAppSelector(
+    (store) => store.session.availableAgentModes,
+  );
   const selectedModel = useAppSelector(selectSelectedChatModel);
+  const ideMessenger = useContext(IdeMessengerContext);
+
+  // ACP agent sessions use the modes reported by the agent
+  const agentModes =
+    brainMode === "agent" && availableAgentModes.length > 0
+      ? availableAgentModes
+      : undefined;
 
   const isGoodAtAgentMode = useMemo(() => {
     if (!selectedModel) {
@@ -33,31 +46,42 @@ export function ModeSelect() {
     return getMetaKeyLabel();
   }, []);
 
+  const applyMode = useCallback(
+    (newMode: string) => {
+      dispatch(setMode(newMode));
+      if (brainMode === "agent") {
+        void ideMessenger.request("acp/setSessionMode", {
+          mode: newMode,
+          agentId: activeAgentId,
+          conversationId: sessionId,
+        });
+      }
+    },
+    [dispatch, brainMode, ideMessenger, activeAgentId, sessionId],
+  );
+
   const cycleMode = useCallback(() => {
-    if (mode === "chat") {
-      dispatch(setMode("plan"));
-    } else if (mode === "plan") {
-      dispatch(setMode("agent"));
-    } else {
-      dispatch(setMode("chat"));
-    }
+    const modes = agentModes
+      ? agentModes.map((m) => m.id)
+      : ["chat", "plan", "agent"];
+    applyMode(modes[(modes.indexOf(mode) + 1) % modes.length]);
     // Only focus main editor if another one doesn't already have focus
     if (!document.activeElement?.classList?.contains("ProseMirror")) {
       mainEditor?.commands.focus();
     }
-  }, [mode, mainEditor]);
+  }, [agentModes, mode, applyMode, mainEditor]);
 
   const selectMode = useCallback(
-    (newMode: MessageModes) => {
+    (newMode: string) => {
       if (newMode === mode) {
         return;
       }
 
-      dispatch(setMode(newMode));
+      applyMode(newMode);
 
       mainEditor?.commands.focus();
     },
-    [mode, mainEditor],
+    [mode, applyMode, mainEditor],
   );
 
   useEffect(() => {
@@ -94,8 +118,14 @@ export function ModeSelect() {
           className="xs:px-2 text-description bg-lightgray/20 gap-1 rounded-full border-none px-1.5 py-0.5 transition-colors duration-200 hover:brightness-110"
         >
           <ModeIcon mode={mode} />
-          <span className="hidden sm:block">
-            {mode === "chat" ? "Chat" : mode === "agent" ? "Agent" : "Plan"}
+          <span className="hidden capitalize sm:block">
+            {agentModes
+              ? (agentModes.find((m) => m.id === mode)?.name ?? mode)
+              : mode === "chat"
+                ? "Chat"
+                : mode === "agent"
+                  ? "Agent"
+                  : "Plan"}
           </span>
           <ChevronDownIcon
             className="h-2 w-2 flex-shrink-0"
@@ -103,6 +133,21 @@ export function ModeSelect() {
           />
         </ListboxButton>
         <ListboxOptions className="min-w-32 max-w-48">
+          {agentModes?.map((agentMode) => (
+            <ListboxOption key={agentMode.id} value={agentMode.id}>
+              <div className="flex flex-row items-center gap-1.5">
+                <ModeIcon mode={agentMode.id} />
+                <span className="capitalize">
+                  {agentMode.name || agentMode.id}
+                </span>
+              </div>
+              {mode === agentMode.id && (
+                <CheckIcon className="ml-auto h-3 w-3" />
+              )}
+            </ListboxOption>
+          ))}
+          {!agentModes && (
+            <>
           <ListboxOption value="chat">
             <div className="flex flex-row items-center gap-1.5">
               <ModeIcon mode="chat" />
@@ -163,6 +208,8 @@ export function ModeSelect() {
               className={`ml-auto h-3 w-3 ${mode === "agent" ? "" : "opacity-0"}`}
             />
           </ListboxOption>
+            </>
+          )}
 
           <div className="text-description-muted px-2 py-1">
             {`${metaKeyLabel} . for next mode`}

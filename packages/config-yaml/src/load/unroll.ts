@@ -399,7 +399,15 @@ export async function unrollBlocks(
     | "env"
     | "requestOptions"
     | "personas"
-  >)[] = ["models", "context", "data", "mcpServers", "prompts", "docs"];
+  >)[] = [
+    "models",
+    "context",
+    "data",
+    "mcpServers",
+    "prompts",
+    "docs",
+    "agent_servers",
+  ];
 
   // Process all sections in parallel
   const sectionPromises = sections.map(async (section) => {

@@ -9,13 +9,23 @@ import { LocalStorageProvider } from "../context/LocalStorage";
 import { useWebviewListener } from "../hooks/useWebviewListener";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { setCodeToEdit } from "../redux/slices/editState";
-import { setShowDialog } from "../redux/slices/uiSlice";
+import {
+  setAgentModel,
+  setAvailableAgentModels,
+  setAvailableAgentModes,
+  setMode,
+  setPlan,
+  streamUpdate,
+} from "../redux/slices/sessionSlice";
+import { setDialogMessage, setShowDialog } from "../redux/slices/uiSlice";
 import { enterEdit, exitEdit } from "../redux/thunks/edit";
 import { saveCurrentSession } from "../redux/thunks/session";
 import { fontSize, isMetaEquivalentKeyPressed } from "../util";
 import { ROUTES } from "../util/navigation";
 import { FatalErrorIndicator } from "./config/FatalErrorNotice";
 import TextDialog from "./dialogs";
+import { NewSessionDialog } from "./dialogs/NewSessionDialog";
+import PermissionDialog from "./dialogs/PermissionDialog";
 import { useMainEditor } from "./mainInput/TipTapEditor";
 import {
   isNewUserOnboarding,
@@ -53,11 +63,19 @@ const Layout = () => {
     location.pathname === ROUTES.HOME ||
     location.pathname === ROUTES.HOME_INDEX;
 
+  const agentServers = useAppSelector(
+    (state) => state.config.config.agent_servers,
+  );
+
   useWebviewListener(
     "newSession",
     async () => {
       navigate(ROUTES.HOME);
-      if (isInEdit) {
+      if (agentServers?.length) {
+        // ACP agents configured: ask whether an LLM or an agent drives the session
+        dispatch(setShowDialog(true));
+        dispatch(setDialogMessage(<NewSessionDialog isInEdit={isInEdit} />));
+      } else if (isInEdit) {
         await dispatch(exitEdit({}));
       } else {
         await dispatch(
@@ -68,7 +86,7 @@ const Layout = () => {
         );
       }
     },
-    [isInEdit],
+    [isInEdit, agentServers],
   );
 
   useWebviewListener(
@@ -165,6 +183,75 @@ const Layout = () => {
     "exitEditMode",
     async () => {
       await dispatch(exitEdit({}));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "acp/streamUpdate",
+    async (messages) => {
+      dispatch(streamUpdate(messages));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "acp/currentModeUpdate",
+    async ({ mode }) => {
+      dispatch(setMode(mode));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "acp/availableModesUpdate",
+    async (data: any) => {
+      dispatch(setAvailableAgentModes(data.modes));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "acp/availableModelsUpdate",
+    async (data: any) => {
+      dispatch(setAvailableAgentModels(data.models));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "acp/currentModelUpdate",
+    async (data: any) => {
+      dispatch(setAgentModel(data.modelId));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "acp/planUpdate",
+    async (plan) => {
+      dispatch(setPlan(plan));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "acp/requestPermission",
+    async (params) => {
+      return new Promise((resolve) => {
+        dispatch(setShowDialog(true));
+        dispatch(
+          setDialogMessage(
+            <PermissionDialog
+              params={params}
+              onResponse={(response) => {
+                dispatch(setShowDialog(false));
+                resolve(response);
+              }}
+            />,
+          ),
+        );
+      });
     },
     [],
   );

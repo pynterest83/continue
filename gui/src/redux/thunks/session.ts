@@ -1,5 +1,10 @@
 import { createAsyncThunk, unwrapResult } from "@reduxjs/toolkit";
-import { BaseSessionMetadata, ChatMessage, Session } from "core";
+import {
+  BaseSessionMetadata,
+  ChatMessage,
+  MessageModes,
+  Session,
+} from "core";
 import { NEW_SESSION_TITLE } from "core/util/constants";
 import { renderChatMessage } from "core/util/messageContent";
 import { IIdeMessenger } from "../../context/IdeMessenger";
@@ -104,7 +109,7 @@ export const loadSession = createAsyncThunk<
       );
     }
     const session = await getSession(extra.ideMessenger, sessionId);
-    dispatch(newSession(session));
+    void dispatch(newSessionThunk(session));
 
     // Restore selected chat model from session, if present
     if (session.chatModelTitle) {
@@ -150,7 +155,7 @@ export const loadLastSession = createAsyncThunk<void, void, ThunkApiType>(
     // }
 
     if (!lastSessionId) {
-      dispatch(newSession());
+      void dispatch(newSessionThunk());
       return;
     }
 
@@ -162,9 +167,9 @@ export const loadLastSession = createAsyncThunk<void, void, ThunkApiType>(
       await new Promise((resolve) => setTimeout(resolve, 1000));
       session = await getSession(extra.ideMessenger, lastSessionId);
     }
-    dispatch(newSession(session));
+    void dispatch(newSessionThunk(session));
     if (session.chatModelTitle) {
-      dispatch(selectChatModelForProfile(session.chatModelTitle));
+      void dispatch(selectChatModelForProfile(session.chatModelTitle));
     }
   },
 );
@@ -183,6 +188,21 @@ function getChatTitleFromMessage(message: ChatMessage) {
   return text;
 }
 
+export const newSessionThunk = createAsyncThunk<
+  void,
+  Session | undefined,
+  ThunkApiType
+>("session/new", async (session, { dispatch, extra, getState }) => {
+  dispatch(newSession(session));
+  const state = getState();
+  if (state.session.brainMode === "agent") {
+    await extra.ideMessenger.request("acp/newSession", {
+      agentId: state.session.activeAgentId,
+      conversationId: state.session.id,
+    });
+  }
+});
+
 export const saveCurrentSession = createAsyncThunk<
   void,
   { openNewSession: boolean; generateTitle: boolean },
@@ -196,7 +216,7 @@ export const saveCurrentSession = createAsyncThunk<
     }
 
     if (openNewSession) {
-      dispatch(newSession());
+      void dispatch(newSessionThunk());
     }
 
     const selectedChatModel = selectSelectedChatModel(getState());
@@ -252,7 +272,8 @@ export const saveCurrentSession = createAsyncThunk<
       title,
       workspaceDirectory: window.workspacePaths?.[0] || "",
       history: session.history,
-      mode: session.mode,
+      // ACP agent sessions store the agent's own mode ID here
+      mode: session.mode as MessageModes,
       chatModelTitle: selectedChatModel?.title ?? null,
     };
 

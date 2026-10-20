@@ -1,17 +1,17 @@
 import { ArrowPathIcon, FlagIcon } from "@heroicons/react/24/outline";
 import { DISCUSSIONS_LINK, GITHUB_LINK } from "core/util/constants";
 import { useContext, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
 import { useNavigate, useRouteError } from "react-router-dom";
 import { Button, SecondaryButton } from "../components";
 import { GithubIcon } from "../components/svg/GithubIcon";
 import { IdeMessengerContext } from "../context/IdeMessenger";
-import { newSession } from "../redux/slices/sessionSlice";
+import { useAppDispatch } from "../redux/hooks";
+import { newSessionThunk } from "../redux/thunks/session";
 
 const ErrorPage: React.FC = () => {
   const error: any = useRouteError();
   console.error(error);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const messenger = useContext(IdeMessengerContext);
@@ -40,7 +40,7 @@ const ErrorPage: React.FC = () => {
       <Button
         className="flex flex-row items-center gap-2"
         onClick={() => {
-          dispatch(newSession());
+          dispatch(newSessionThunk());
           localStorage.removeItem("persist:root");
           localStorage.removeItem("inputHistory_chat");
           // localStorage.removeItem("showTutorialCard");

@@ -38,6 +38,7 @@ import { getBaseSystemMessage } from "../util/getBaseSystemMessage";
 import { callToolById } from "./callToolById";
 import { evaluateToolPolicies } from "./evaluateToolPolicies";
 import { preprocessToolCalls } from "./preprocessToolCallArgs";
+import { streamAcpInput } from "./streamAcpInput";
 import { streamResponseAfterToolCall } from "./streamResponseAfterToolCall";
 
 /**
@@ -91,6 +92,25 @@ export const streamNormalInput = createAsyncThunk<
       throw new Error(message);
     }
     const state = getState();
+    if (state.session.brainMode === "agent") {
+      const lastUserItem = state.session.history.findLast(
+        (item) => item.message.role === "user",
+      );
+      const lastMessage = lastUserItem?.message;
+      if (lastMessage) {
+        if (typeof lastMessage.content === "string") {
+          await dispatch(
+            streamAcpInput({ prompt: lastMessage.content as string }),
+          );
+        } else {
+          await dispatch(
+            streamAcpInput({ prompt: (lastMessage.content as any[])[0].text }),
+          );
+        }
+
+        return;
+      }
+    }
     const selectedChatModel = selectSelectedChatModel(state);
     const selectedPersonaName = state.session.selectedPersona;
     const selectedPersona = selectedPersonaName

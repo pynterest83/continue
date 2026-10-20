@@ -209,6 +209,9 @@ export async function configYamlToContinueConfig(options: {
         roleDefinition: p.roleDefinition ?? "",
         whenToUse: p.whenToUse ?? "",
       })),
+    agent_servers: unrolledAssistant.agent_servers?.filter(
+      (a): a is NonNullable<typeof a> => !!a,
+    ),
   };
 
   const config = nonNullifyConfigYaml(unrolledAssistant);

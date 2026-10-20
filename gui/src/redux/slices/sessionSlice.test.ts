@@ -76,6 +76,9 @@ describe("sessionSlice streamUpdate", () => {
     newestToolbarPreviewForInput: {},
     isSessionMetadataLoading: false,
     compactionLoading: {},
+    brainMode: "llm" as const,
+    availableAgentModels: [],
+    availableAgentModes: [],
   });
 
   describe("Basic Chat Message", () => {

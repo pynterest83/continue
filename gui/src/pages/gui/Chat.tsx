@@ -16,6 +16,7 @@ import {
 import { ErrorBoundary } from "react-error-boundary";
 import styled from "styled-components";
 import { Button, lightGray, vscBackground } from "../../components";
+import AcpPlan from "../../components/AcpPlan";
 import { useFindWidget } from "../../components/find/FindWidget";
 import TimelineItem from "../../components/gui/TimelineItem";
 import { NewSessionButton } from "../../components/mainInput/belowMainInput/NewSessionButton";
@@ -34,11 +35,12 @@ import {
 import {
   cancelToolCall,
   ChatHistoryItemWithMessageId,
-  newSession,
+  setActiveAgent,
+  setAgentModel,
   updateToolCallOutput,
 } from "../../redux/slices/sessionSlice";
 import { streamEditThunk } from "../../redux/thunks/edit";
-import { loadLastSession } from "../../redux/thunks/session";
+import { loadLastSession, newSessionThunk } from "../../redux/thunks/session";
 import { streamResponseThunk } from "../../redux/thunks/streamResponse";
 import { isJetBrains, isMetaEquivalentKeyPressed } from "../../util";
 import { ToolCallDiv } from "./ToolCallDiv";
@@ -132,6 +134,65 @@ export function Chat() {
   }, []);
 
   useAutoScroll(stepsDivRef, history);
+
+  const brainMode = useAppSelector((state) => state.session.brainMode);
+  const activeAgentId = useAppSelector((state) => state.session.activeAgentId);
+  const sessionId = useAppSelector((state) => state.session.id);
+  const availableAgentModels = useAppSelector(
+    (state) => state.session.availableAgentModels,
+  );
+  const currentAgentModel = useAppSelector(
+    (state) => state.session.currentAgentModel,
+  );
+  const lastConnectedKey = useRef<string>("");
+
+  useEffect(() => {
+    const currentKey = `${activeAgentId}-${currentAgentModel}`;
+    if (
+      brainMode === "agent" &&
+      activeAgentId &&
+      currentKey !== lastConnectedKey.current
+    ) {
+      void (async () => {
+        const result = await ideMessenger.request("acp/connect", {
+          agentId: activeAgentId,
+          mode,
+          model: currentAgentModel,
+          conversationId: sessionId,
+        });
+        if (result.status === "success" && result.content.success) {
+          lastConnectedKey.current = currentKey;
+          const models = result.content.models || availableAgentModels;
+          dispatch(
+            setActiveAgent({
+              agentId: activeAgentId,
+              models,
+              modes: (result.content.modes as any) || [],
+              allowSelectModel: result.content.allowSelectModel,
+            }),
+          );
+
+          // Check if current model is in available models
+          const modelIds = models.map((m) => m.modelId);
+          if (
+            models.length > 0 &&
+            !modelIds.includes(currentAgentModel || "")
+          ) {
+            dispatch(setAgentModel(models[0].modelId));
+          }
+        }
+      })();
+    }
+  }, [
+    brainMode,
+    activeAgentId,
+    currentAgentModel,
+    sessionId,
+    ideMessenger,
+    dispatch,
+    availableAgentModels,
+    mode,
+  ]);
 
   useEffect(() => {
     // Cmd + Backspace to delete current step
@@ -248,6 +309,34 @@ export function Chat() {
         updateToolCallOutput({
           toolCallId: data.toolCallId,
           contextItems: data.contextItems,
+        }),
+      );
+    },
+    [dispatch],
+  );
+
+  useWebviewListener(
+    "submitMessage",
+    async (data) => {
+      const editorState = {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: data.text,
+              },
+            ],
+          },
+        ],
+      };
+
+      void dispatch(
+        streamResponseThunk({
+          editorState,
+          modifiers: { useCodebase: false, noContext: true },
         }),
       );
     },
@@ -390,6 +479,7 @@ export function Chat() {
       >
         <DeprecationBanner dismissable={true} />
         {highlights}
+        <AcpPlan />
         {history
           .filter((item) => item.message.role !== "system")
           .map((item, index: number) => (
@@ -402,7 +492,7 @@ export function Chat() {
               <ErrorBoundary
                 FallbackComponent={fallbackRender}
                 onReset={() => {
-                  dispatch(newSession());
+                  void dispatch(newSessionThunk());
                 }}
               >
                 {renderChatHistoryItem(item, index)}

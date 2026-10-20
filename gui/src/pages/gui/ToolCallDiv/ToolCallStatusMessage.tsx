@@ -11,28 +11,26 @@ export function ToolCallStatusMessage({
   tool,
   toolCallState,
 }: ToolCallStatusMessageProps) {
-  if (!tool) return "Agent tool use";
+  const toolName = tool
+    ? (tool.displayTitle ?? tool.function.name)
+    : toolCallState.toolCall.function.name || "Agent tool";
+  const defaultToolDescription = tool ? `${toolName} tool` : toolName;
 
-  const toolName = tool.displayTitle ?? tool.function.name;
-  const defaultToolDescription = `${toolName} tool`;
-
-  const futureMessage: string = tool.wouldLikeTo
+  const futureMessage: string = tool?.wouldLikeTo
     ? Mustache.render(tool.wouldLikeTo, toolCallState.parsedArgs)
-    : `use the ${defaultToolDescription}`;
-  // TODO go back and replace arg string values and tool names with <code> tags
-  // to make them more readable
+    : `use ${defaultToolDescription}`;
 
-  let intro = getStatusIntro(toolCallState.status, tool.isInstant);
+  let intro = getStatusIntro(toolCallState.status, tool?.isInstant);
   let message = "";
 
   // Handle the special case for "done" status or instant tools that are calling
   if (
     toolCallState.status === "done" ||
-    (tool.isInstant && toolCallState.status === "calling")
+    (tool?.isInstant && toolCallState.status === "calling")
   ) {
-    message = tool.hasAlready
+    message = tool?.hasAlready
       ? Mustache.render(tool.hasAlready, toolCallState.parsedArgs)
-      : `used the ${defaultToolDescription}`;
+      : `used ${defaultToolDescription}`;
   } else {
     switch (toolCallState.status) {
       case "generating":
@@ -42,12 +40,20 @@ export function ToolCallStatusMessage({
         message = futureMessage;
         break;
       case "calling":
-        message = tool.isCurrently
+        message = tool?.isCurrently
           ? Mustache.render(tool.isCurrently, toolCallState.parsedArgs)
-          : `calling the ${defaultToolDescription}`;
+          : `calling ${defaultToolDescription}`;
         break;
       default:
         message = defaultToolDescription;
+    }
+  }
+
+  // If we don't have a specific tool definition, append the arguments to show what is happening
+  if (!tool && toolCallState.toolCall.function.arguments) {
+    const args = toolCallState.toolCall.function.arguments;
+    if (args && args !== "{}" && args !== "") {
+      message += ` (${args})`;
     }
   }
 
@@ -56,7 +62,7 @@ export function ToolCallStatusMessage({
       className="text-description line-clamp-4 min-w-0 break-words"
       data-testid="tool-call-title"
     >
-      {`Continue ${intro} ${message}`}
+      {intro ? `Continue ${intro} ${message}` : `Continue ${message}`}
     </div>
   );
 }

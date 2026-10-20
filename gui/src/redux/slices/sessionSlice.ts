@@ -1,3 +1,4 @@
+import * as acp from "@agentclientprotocol/sdk";
 import {
   ActionReducerMapBuilder,
   AsyncThunk,
@@ -24,6 +25,7 @@ import {
   Tool,
   ToolCallDelta,
   ToolCallState,
+  ToolStatus,
 } from "core";
 import { mergeReasoningDetails } from "core/llm/openaiTypeConverters";
 import { NEW_SESSION_TITLE } from "core/util/constants";
@@ -50,8 +52,14 @@ import { findChatHistoryItemByToolCallId, findToolCallById } from "../util";
  */
 function filterMultipleEditToolCalls(
   toolCalls: ToolCallDelta[],
+  existingToolCallStates?: ToolCallState[],
 ): ToolCallDelta[] {
-  let hasSeenEditTool = false;
+  let hasSeenEditTool =
+    existingToolCallStates?.some(
+      (state) =>
+        state.toolCall.function?.name &&
+        isEditTool(state.toolCall.function.name),
+    ) ?? false;
 
   return toolCalls.filter((toolCall) => {
     if (toolCall.function?.name && isEditTool(toolCall.function?.name)) {
@@ -83,7 +91,10 @@ export function handleToolCallsInMessage(
     message.toolCalls?.length
   ) {
     // Filter out duplicate edit/search-replace tool calls - only keep the first one
-    const filteredToolCalls = filterMultipleEditToolCalls(message.toolCalls);
+    const filteredToolCalls = filterMultipleEditToolCalls(
+      message.toolCalls,
+      lastItem.toolCallStates,
+    );
 
     // Initialize tool call states for each filtered tool call in the message
     // Each tool call gets its own state to track generation/execution progress
@@ -116,6 +127,7 @@ export function handleToolCallsInMessage(
 function applyToolCallDelta(
   toolCallDelta: ToolCallDelta,
   toolCallStates: ToolCallState[],
+  metadata?: Record<string, any>,
 ): void {
   // Find existing state by matching toolCallId - this ensures we update
   // the correct tool call even when multiple tool calls are being streamed
@@ -142,8 +154,34 @@ function applyToolCallDelta(
   const existingState =
     existingStateIndex >= 0 ? toolCallStates[existingStateIndex] : undefined;
 
+  // Map ACP status to Continue status
+  let status: ToolStatus | undefined = undefined;
+  let isFullReplacement = false;
+  if (metadata?.acpToolStatus) {
+    isFullReplacement = true; // ACP always provides full titles/args in updates
+    switch (metadata.acpToolStatus) {
+      case "pending":
+        status = "calling";
+        break;
+      case "in_progress":
+        status = "calling";
+        break;
+      case "completed":
+        status = "done";
+        break;
+      case "failed":
+        status = "errored";
+        break;
+    }
+  }
+
   // Apply the delta to create an updated state (either updating existing or creating new)
-  const updatedState = addToolCallDeltaToState(toolCallDelta, existingState);
+  const updatedState = addToolCallDeltaToState(
+    toolCallDelta,
+    existingState,
+    status,
+    isFullReplacement,
+  );
 
   if (existingStateIndex >= 0) {
     // Update existing tool call state in place
@@ -177,11 +215,18 @@ export function handleStreamingToolCallUpdates(
     const updatedToolCallStates: ToolCallState[] = [...existingToolCallStates];
 
     // Filter out duplicate edit/search-replace tool calls - only keep the first one
-    const filteredToolCalls = filterMultipleEditToolCalls(message.toolCalls);
+    const filteredToolCalls = filterMultipleEditToolCalls(
+      message.toolCalls,
+      existingToolCallStates,
+    );
 
     // Process each filtered tool call delta, matching by ID to update the correct state
     filteredToolCalls.forEach((toolCallDelta) => {
-      applyToolCallDelta(toolCallDelta, updatedToolCallStates);
+      applyToolCallDelta(
+        toolCallDelta,
+        updatedToolCallStates,
+        message.metadata,
+      );
     });
 
     // Replace the entire tool call states array with the updated version
@@ -200,6 +245,8 @@ export type ChatHistoryItemWithMessageId = ChatHistoryItem & {
   message: ChatMessage & { id: string };
 };
 
+export type BrainMode = "llm" | "agent";
+
 type SessionState = {
   lastSessionId?: string;
   isSessionMetadataLoading: boolean;
@@ -211,13 +258,20 @@ type SessionState = {
   streamAborter: AbortController;
   mainEditorContentTrigger?: JSONContent | undefined;
   symbols: FileSymbolMap;
-  mode: MessageModes;
+  mode: string;
+  brainMode: BrainMode;
+  activeAgentId?: string;
+  currentAgentModel?: string;
+  availableAgentModels: { modelId: string; name?: string }[];
+  availableAgentModes: { id: string; name?: string }[];
+  allowSelectModel?: boolean;
   isInEdit: boolean;
   codeBlockApplyStates: {
     states: ApplyState[];
     curIndex: number;
   };
   newestToolbarPreviewForInput: Record<string, string>;
+  currentPlan?: acp.Plan;
   hasReasoningEnabled?: boolean;
   isPruned?: boolean;
   contextPercentage?: number;
@@ -236,6 +290,11 @@ export const INITIAL_SESSION_STATE: SessionState = {
   streamAborter: new AbortController(),
   symbols: {},
   mode: "agent",
+  brainMode: "llm",
+  currentAgentModel: undefined,
+  availableAgentModels: [],
+  availableAgentModes: [],
+  allowSelectModel: true, // Default to true for LLM mode
   isInEdit: false,
   codeBlockApplyStates: {
     states: [],
@@ -354,6 +413,78 @@ export const sessionSlice = createSlice({
       if (state.history[index]) {
         state.history[index].contextItems = contextItems;
       }
+    },
+    setBrainMode: (state, action: PayloadAction<BrainMode>) => {
+      state.brainMode = action.payload;
+      if (state.brainMode === "agent") {
+        if (
+          state.availableAgentModes.length > 0 &&
+          !state.availableAgentModes.find((m) => m.id === state.mode)
+        ) {
+          state.mode = state.availableAgentModes[0].id;
+        }
+      } else {
+        // When switching to LLM brain, clear agent-specific state
+        state.availableAgentModes = [];
+        state.availableAgentModels = [];
+        state.activeAgentId = undefined;
+        state.currentAgentModel = undefined;
+
+        if (!["chat", "plan", "agent", "background"].includes(state.mode)) {
+          state.mode = "chat";
+        }
+        state.allowSelectModel = true; // Always allow for LLM brain
+      }
+    },
+    setActiveAgent: (
+      state,
+      action: PayloadAction<
+        | {
+            agentId: string;
+            models: { modelId: string; name?: string }[];
+            modes: { id: string; name?: string }[];
+            allowSelectModel?: boolean;
+          }
+        | undefined
+      >,
+    ) => {
+      state.activeAgentId = action.payload?.agentId;
+      state.availableAgentModels = action.payload?.models || [];
+      state.availableAgentModes = action.payload?.modes || [];
+      state.allowSelectModel = action.payload?.allowSelectModel;
+
+      if (
+        state.brainMode === "agent" &&
+        state.availableAgentModes.length > 0 &&
+        !state.availableAgentModes.find((m) => m.id === state.mode)
+      ) {
+        state.mode = state.availableAgentModes[0].id;
+      }
+    },
+    setAgentModel: (state, action: PayloadAction<string | undefined>) => {
+      state.currentAgentModel = action.payload;
+    },
+    setAvailableAgentModes: (
+      state,
+      action: PayloadAction<{ id: string; name?: string }[]>,
+    ) => {
+      state.availableAgentModes = action.payload;
+      if (
+        state.brainMode === "agent" &&
+        state.availableAgentModes.length > 0 &&
+        !state.availableAgentModes.find((m) => m.id === state.mode)
+      ) {
+        state.mode = state.availableAgentModes[0].id;
+      }
+    },
+    setAvailableAgentModels: (
+      state,
+      action: PayloadAction<{ modelId: string; name?: string }[]>,
+    ) => {
+      state.availableAgentModels = action.payload;
+    },
+    setPlan: (state, action: PayloadAction<acp.Plan | undefined>) => {
+      state.currentPlan = action.payload;
     },
     submitEditorAndInitAtIndex: (
       state,
@@ -523,6 +654,7 @@ export const sessionSlice = createSlice({
       state.streamAborter = new AbortController();
     },
     streamUpdate: (state, action: PayloadAction<ChatMessage[]>) => {
+      console.log("streamUpdate", action);
       if (state.history.length) {
         for (const message of action.payload) {
           let lastItem = state.history[state.history.length - 1];
@@ -696,6 +828,7 @@ export const sessionSlice = createSlice({
       state.inlineErrorMessage = undefined;
       state.isPruned = false;
       state.contextPercentage = undefined;
+      state.currentPlan = undefined;
 
       if (payload) {
         state.history = payload.history as any;
@@ -958,7 +1091,7 @@ export const sessionSlice = createSlice({
         toolCallState.status = "calling";
       }
     },
-    setMode: (state, action: PayloadAction<MessageModes>) => {
+    setMode: (state, action: PayloadAction<string>) => {
       state.mode = action.payload;
     },
     setIsInEdit: (state, action: PayloadAction<boolean>) => {
@@ -1088,6 +1221,12 @@ export const {
   updateSessionMetadata,
   deleteSessionMetadata,
   setNewestToolbarPreviewForInput,
+  setBrainMode,
+  setActiveAgent,
+  setAgentModel,
+  setAvailableAgentModes,
+  setAvailableAgentModels,
+  setPlan,
   setIsInEdit,
   setHasReasoningEnabled,
   setInlineErrorMessage,

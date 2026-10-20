@@ -644,6 +644,7 @@ async function finalToBrowserConfig(
     tools: final.tools.map(serializeTool),
     mcpServerStatuses: final.mcpServerStatuses,
     tabAutocompleteOptions: final.tabAutocompleteOptions,
+    agent_servers: final.agent_servers,
     modelsByRole: Object.fromEntries(
       Object.entries(final.modelsByRole).map(([k, v]) => [
         k,

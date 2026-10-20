@@ -47,6 +47,7 @@ import {
 } from ".";
 
 import { ConfigYaml } from "@continuedev/config-yaml";
+import { AcpService } from "./acp/AcpService";
 import { getDiffFn, GitDiffCache } from "./autocomplete/snippets/gitDiffCache";
 import { InlineCompletionProvider } from "./autocompletion-v2/InlineCompletionProvider";
 import { LRUCache } from "./autocompletion-v2/LruCache";
@@ -96,6 +97,7 @@ export class Core {
   private docsService: DocsService;
   private globalContext = new GlobalContext();
   llmLogger = new LLMLogger();
+  acpService: AcpService;
 
   private messageAbortControllers = new Map<string, AbortController>();
   private addMessageAbortController(id: string): AbortController {
@@ -143,6 +145,11 @@ export class Core {
         this.configHandler,
         this.ide,
         this.messenger,
+      );
+      this.acpService = new AcpService(
+        this.ide,
+        this.messenger,
+        this.configHandler,
       );
 
       MCPManagerSingleton.getInstance().onConnectionsRefreshed = () => {
@@ -1195,6 +1202,44 @@ export class Core {
         void this.ide.showToast("error", error.message);
         return [];
       }
+    });
+
+    on("acp/connect", async (msg) => {
+      const res = await this.acpService.connect(
+        msg.data.agentId,
+        msg.data.mode,
+        msg.data.model,
+        msg.data.conversationId,
+      );
+      return res;
+    });
+
+    on("acp/streamChat", async (msg) => {
+      await this.acpService.prompt(
+        msg.data.prompt,
+        msg.data.mode,
+        msg.data.model,
+        msg.data.agentId,
+        msg.data.conversationId,
+      );
+    });
+    on("acp/setSessionMode", async (msg) => {
+      await this.acpService.setSessionMode(
+        msg.data.mode,
+        msg.data.agentId,
+        msg.data.conversationId,
+      );
+    });
+    on("acp/newSession", async (msg) => {
+      return await this.acpService.newSession(
+        msg.data?.agentId,
+        msg.data?.conversationId,
+        msg.data?.mode,
+      );
+    });
+
+    on("acp/cancel", async (msg) => {
+      await this.acpService.cancel(msg.data.agentId, msg.data.conversationId);
     });
   }
 

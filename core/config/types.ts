@@ -1143,6 +1143,14 @@ declare global {
   }
   
   // config.json
+  export interface AgentDescription {
+    name: string;
+    provider: string;
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+  }
+
   export interface SerializedContinueConfig {
     env?: string[];
     allowAnonymousTelemetry?: boolean;
@@ -1164,6 +1172,7 @@ declare global {
     experimental?: ExperimentalConfig;
     analytics?: AnalyticsConfig;
     docs?: SiteIndexingConfig[];
+    agent_servers?: AgentDescription[];
   }
   
   export type ConfigMergeType = "merge" | "overwrite";
@@ -1216,6 +1225,8 @@ declare global {
     experimental?: ExperimentalConfig;
     /** Analytics configuration */
     analytics?: AnalyticsConfig;
+    /** The list of agents that will be available */
+    agent_servers?: AgentDescription[];
   }
   
   // in the actual Continue source code
@@ -1249,6 +1260,7 @@ declare global {
       availableTools?: string;
       customInstructions?: string;
     }>;
+    agent_servers?: AgentDescription[];
   }
   
   export interface BrowserSerializedContinueConfig {
@@ -1269,6 +1281,7 @@ declare global {
     analytics?: AnalyticsConfig;
     docs?: SiteIndexingConfig[];
     tools: Tool[];
+    agent_servers?: AgentDescription[];
   }
   
   // DOCS SUGGESTIONS AND PACKAGE INFO
